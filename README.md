@@ -22,11 +22,10 @@ The portfolio details several high-level robotics projects, including:
 ## 📂 Project Structure
 ```text
 .
-├── Portfolio/
-│   ├── index.html    # Main website structure and project data
-│   ├── style.css     # Custom styling, CSS variables, and layout
-│   ├── script.js     # Modal logic, mobile menu, chatbot, and smooth scrolling
-│   └── README.md     # Project documentation
+├── index.html    # Main website structure and project data
+├── style.css     # Custom styling, CSS variables, and layout
+├── script.js     # Modal logic, mobile menu, chatbot, and smooth scrolling
+├── README.md     # Project documentation
 ├── api/
 │   └── chat.js       # Vercel serverless function for AI chatbot (Google Gemini)
 ├── package.json      # Node.js dependencies for Vercel
