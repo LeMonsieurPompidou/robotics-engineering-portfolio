@@ -3,7 +3,7 @@
 This repository contains the source code for my personal portfolio website. It showcases my work as an EPFL Robotics Engineer, focusing on autonomous systems, hardware-software integration, and neuro-robotics.
 
 ## 🚀 Live Demo
-You can view the live site here: https://lemonsieurpompidou.github.io/portfolio/
+You can view the live site here: [https://samrahnemayan.vercel.app/](https://samrahnemayan.vercel.app/)
 
 ## 🛠️ Technical Stack
 The website is built using a minimalist and performant approach, focusing on clean code and responsive design without heavy frameworks:
@@ -53,7 +53,7 @@ The portfolio includes an interactive AI chatbot powered by **Google's Gemini AP
 4. In the **Environment Variables** section, add:
    - **Name**: `GEMINI_API_KEY`
    - **Value**: Your API key from Google AI Studio
-5. Deploy! Vercel will automatically detect the serverless function and static files
+5. Vercel will automatically detect the serverless function and static files
 
 ### Configuration
 - The `api/chat.js` function handles POST requests at `/api/chat`
