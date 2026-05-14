@@ -101,11 +101,14 @@ The software layer featured a Unity game that processed raw sensor data to provi
 function toggleMenu() {
     hamburger.classList.toggle('active');
     navMenu.classList.toggle('active');
+    const isExpanded = hamburger.classList.contains('active');
+    hamburger.setAttribute('aria-expanded', String(isExpanded));
 }
 
 function closeMenu() {
     hamburger.classList.remove('active');
     navMenu.classList.remove('active');
+    hamburger.setAttribute('aria-expanded', 'false');
 }
 
 // =============================================

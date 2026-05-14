@@ -391,6 +391,7 @@ main {
     margin-bottom: var(--spacing-lg);
     overflow-y: auto;
     padding: var(--spacing-md);
+    aspect-ratio: auto;
 }
 
 .modal-gallery-section {
@@ -422,6 +423,7 @@ main {
     overflow: hidden;
     background: #000000;
     scroll-snap-align: start;
+    aspect-ratio: 16 / 9;
 }
 
 .modal-gallery-link {
@@ -540,12 +542,15 @@ main {
     border: none;
     cursor: pointer;
     font-size: var(--font-size-sm);
+    touch-action: manipulation;
 }
 
-.modal-link-btn:hover {
-    background-color: var(--secondary-color);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+@media (hover: hover) {
+    .modal-link-btn:hover {
+        background-color: var(--secondary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
 }
 
 .modal-link-btn:disabled {
@@ -741,8 +746,8 @@ main {
 }
 
 .project-thumb {
-    height: 168px;
     width: 100%;
+    aspect-ratio: 16 / 9;
     border-bottom: 1px solid rgba(59, 130, 246, 0.3);
     background:
         radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.35), transparent 45%),
@@ -972,6 +977,7 @@ main {
     text-decoration: none;
     transition: var(--transition);
     word-break: break-word;
+    touch-action: manipulation;
 }
 
 @media (hover: hover) {
@@ -1484,15 +1490,24 @@ main {
     }
 
     .nav-link {
-        display: block;
-        padding: var(--spacing-md) var(--spacing-md);
-        min-height: 44px;
         display: flex;
         align-items: center;
+        padding: var(--spacing-md) var(--spacing-md);
+        min-height: 44px;
+        min-width: 44px;
     }
 
     .nav-link::after {
         display: none;
+    }
+
+    .contact-item a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: var(--spacing-sm) var(--spacing-md);
+        touch-action: manipulation;
     }
 
     /* Hero Section */
@@ -1673,7 +1688,15 @@ main {
 .nav-link:focus,
 .cta-button:focus,
 .project-link:focus,
-.social-link:focus {
+.social-link:focus,
+.hamburger:focus,
+.contact-item a:focus,
+.github-link:focus,
+.modal-close:focus,
+.chatbot-toggle:focus,
+.chatbot-close:focus,
+.chatbot-send:focus,
+.modal-link-btn:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }
