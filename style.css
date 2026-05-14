@@ -111,8 +111,10 @@ main {
     transition: var(--transition);
 }
 
-.logo a:hover {
-    color: var(--secondary-color);
+@media (hover: hover) {
+    .logo a:hover {
+        color: var(--secondary-color);
+    }
 }
 
 .nav-list {
@@ -131,10 +133,17 @@ main {
     text-transform: uppercase;
     transition: var(--transition);
     position: relative;
+    touch-action: manipulation;
 }
 
-.nav-link:hover {
-    color: var(--primary-color);
+@media (hover: hover) {
+    .nav-link:hover {
+        color: var(--primary-color);
+    }
+
+    .nav-link:hover::after {
+        width: 100%;
+    }
 }
 
 .nav-link::after {
@@ -148,10 +157,6 @@ main {
     transition: width 0.3s ease;
 }
 
-.nav-link:hover::after {
-    width: 100%;
-}
-
 /* Hamburger Menu */
 .hamburger {
     display: none;
@@ -161,6 +166,11 @@ main {
     cursor: pointer;
     gap: 5px;
     padding: var(--spacing-xs);
+    touch-action: manipulation;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
 }
 
 .hamburger-line {
@@ -264,13 +274,21 @@ main {
     transition: var(--transition);
     border: 1px solid rgba(59, 130, 246, 0.5);
     box-shadow: 0 8px 16px rgba(59, 130, 246, 0.24);
+    touch-action: manipulation;
 }
 
-.cta-button:hover {
-    background-color: #2563eb;
-    color: #ffffff;
-    border-color: #60a5fa;
-    transform: translateY(-3px);
+@media (hover: hover) {
+    .cta-button:hover {
+        background-color: #2563eb;
+        color: #ffffff;
+        border-color: #60a5fa;
+        transform: translateY(-3px);
+    }
+
+    .cta-button-secondary:hover {
+        background-color: rgba(59, 130, 246, 0.18);
+        color: #ffffff;
+    }
 }
 
 .cta-button-secondary {
@@ -278,11 +296,6 @@ main {
     color: #bfdbfe;
     border-color: rgba(96, 165, 250, 0.45);
     box-shadow: none;
-}
-
-.cta-button-secondary:hover {
-    background-color: rgba(59, 130, 246, 0.18);
-    color: #ffffff;
 }
 
 /* =============================================
@@ -359,9 +372,11 @@ main {
     justify-content: center;
 }
 
-.modal-close:hover {
-    color: var(--primary-color);
-    transform: scale(1.2);
+@media (hover: hover) {
+    .modal-close:hover {
+        color: var(--primary-color);
+        transform: scale(1.2);
+    }
 }
 
 .modal-content {
@@ -587,10 +602,12 @@ main {
     transition: var(--transition);
 }
 
-.skill-category:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: rgba(96, 165, 250, 0.55);
+@media (hover: hover) {
+    .skill-category:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(96, 165, 250, 0.55);
+    }
 }
 
 .skill-category-title {
@@ -628,10 +645,12 @@ main {
     cursor: default;
 }
 
-.skill-tag:hover {
-    background-color: rgba(59, 130, 246, 0.16);
-    border-color: #60a5fa;
-    transform: translateY(-1px);
+@media (hover: hover) {
+    .skill-tag:hover {
+        background-color: rgba(59, 130, 246, 0.16);
+        border-color: #60a5fa;
+        transform: translateY(-1px);
+    }
 }
 
 
@@ -702,6 +721,23 @@ main {
     border: 1px solid rgba(59, 130, 246, 0.25);
     cursor: pointer;
     position: relative;
+    touch-action: manipulation;
+}
+
+@media (hover: hover) {
+    .project-card:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(96, 165, 250, 0.6);
+        background: linear-gradient(165deg, rgba(19, 34, 59, 0.98), rgba(11, 18, 32, 0.98));
+    }
+
+    .project-card-placeholder:hover {
+        transform: none;
+        box-shadow: var(--shadow);
+        border-left-color: var(--border-color);
+        background: var(--background-color);
+    }
 }
 
 .project-thumb {
@@ -742,27 +778,13 @@ main {
     border-color: rgba(59, 130, 246, 0.2);
 }
 
-.project-card-placeholder:hover {
-    transform: none;
-    box-shadow: var(--shadow);
-    border-left-color: var(--border-color);
-    background: var(--background-color);
-}
-
-.project-card:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--shadow-lg);
-    border-color: rgba(96, 165, 250, 0.6);
-    background: linear-gradient(165deg, rgba(19, 34, 59, 0.98), rgba(11, 18, 32, 0.98));
-}
-
 .project-card:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }
 
 .project-card:active {
-    transform: translateY(-4px);
+    transform: scale(0.98);
 }
 
 .project-header {
@@ -931,9 +953,11 @@ main {
     transition: var(--transition);
 }
 
-.contact-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-3px);
+@media (hover: hover) {
+    .contact-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+    }
 }
 
 .contact-item h3 {
@@ -950,8 +974,10 @@ main {
     word-break: break-word;
 }
 
-.contact-item a:hover {
-    color: var(--primary-color);
+@media (hover: hover) {
+    .contact-item a:hover {
+        color: var(--primary-color);
+    }
 }
 
 .contact-item p {
@@ -995,13 +1021,16 @@ main {
     transition: var(--transition);
     font-size: var(--font-size-base);
     font-weight: 500;
+    touch-action: manipulation;
 }
 
-.github-link:hover {
-    color: var(--secondary-color);
-    border-color: var(--secondary-color);
-    background-color: rgba(59, 130, 246, 0.14);
-    transform: translateY(-2px);
+@media (hover: hover) {
+    .github-link:hover {
+        color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        background-color: rgba(59, 130, 246, 0.14);
+        transform: translateY(-2px);
+    }
 }
 
 .github-link:focus {
@@ -1036,12 +1065,15 @@ main {
     box-shadow: var(--shadow-lg);
     cursor: pointer;
     transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+    touch-action: manipulation;
 }
 
-.chatbot-toggle:hover {
-    transform: translateY(-2px);
-    filter: saturate(1.05);
-    box-shadow: 0 16px 30px rgba(59, 130, 246, 0.28);
+@media (hover: hover) {
+    .chatbot-toggle:hover {
+        transform: translateY(-2px);
+        filter: saturate(1.05);
+        box-shadow: 0 16px 30px rgba(59, 130, 246, 0.28);
+    }
 }
 
 .chatbot-toggle:focus-visible,
@@ -1130,11 +1162,14 @@ main {
     line-height: 1;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.2s ease;
+    touch-action: manipulation;
 }
 
-.chatbot-close:hover {
-    background: rgba(255, 255, 255, 0.18);
-    transform: scale(1.04);
+@media (hover: hover) {
+    .chatbot-close:hover {
+        background: rgba(255, 255, 255, 0.18);
+        transform: scale(1.04);
+    }
 }
 
 .chatbot-messages {
@@ -1327,11 +1362,14 @@ main {
     cursor: pointer;
     box-shadow: var(--shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    touch-action: manipulation;
 }
 
-.chatbot-send:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
+@media (hover: hover) {
+    .chatbot-send:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+    }
 }
 
 .sr-only {
@@ -1448,6 +1486,9 @@ main {
     .nav-link {
         display: block;
         padding: var(--spacing-md) var(--spacing-md);
+        min-height: 44px;
+        display: flex;
+        align-items: center;
     }
 
     .nav-link::after {
