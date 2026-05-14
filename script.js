@@ -406,7 +406,12 @@ chatbotForm.addEventListener('submit', sendMessage);
 
 navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
-        const targetId = link.getAttribute('href').substring(1);
+        const href = link.getAttribute('href') || '';
+        if (!href.startsWith('#')) {
+            return;
+        }
+
+        const targetId = href.substring(1);
         const targetSection = document.getElementById(targetId);
 
         if (targetSection) {
