@@ -33,7 +33,7 @@ export default async function handler(req, res) {
             ? `${context}\n\nUser question: ${message}` 
             : message;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-3-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         const text = response.text();
