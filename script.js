@@ -97,12 +97,14 @@ The second phase extended the architecture into a closed-loop system by integrat
         report: `This semester project, conducted at the REHAssist lab at EPFL, focused on the development and integration of an interactive virtual reality environment designed for neurorehabilitation. The primary objective was to bridge the gap between physical therapeutic hardware and digital feedback systems by interfacing a virtual gaming environment with two key medical systems: the LegoPress, a seated lower-limb training and performance assessment device, and a Functional Electrical Stimulation (FES) system. This integrated setup was specifically designed to provide intuitive visual biofeedback for stroke survivors or individuals suffering from a loss of proprioceptive awareness.
 
 On the technical side, the project required establishing a robust, low-latency communication pipeline between the mechanical hardware and the software application. I worked on processing real-time kinematic and kinetic data collected via potentiometers and load cells embedded on the LegoPress device to accurately capture patient position and force exertion. This data was streamed into a custom graphical user interface (GUI) using a high-throughput User Datagram Protocol (UDP) socket communication framework. Within the Unity engine, I developed a versatile virtual environment featuring four distinct clinical training modes alongside two tailored gamification modules engineered to enhance user compliance and motivation during recovery sessions. To prioritize accessibility and patient inclusivity, the environment featured six selectable user avatars, three localized camera perspectives, and an embedded bilingual localization system supporting both English and Arabic.` },
+    
     olfactory: {
         report: `Developed as part of the EPFL course Controlling Behavior in Animals and Robots, this project explored the implementation of a bio-inspired, motion-based olfactory navigation algorithm to guide an autonomous agent toward the source of a complex odor plume. Moving beyond traditional wind-guided navigation strategies, the research investigated how walking fruit flies (Drosophila melanogaster) utilize the spatiotemporal timing and motion direction of odor encounters—rather than ambient wind direction—to navigate turbulent environments. The core of the architecture relied on adopting a bilateral sensing approach modeled after a Hassenstein-Reichardt Correlator (HRC), a biological circuit typically studied in visual motion detection, to process concentration inputs from the agent's left and right antennae.
 
 On the algorithmic side, the work involved developing a closed-loop sensorimotor controller that determined the moving odor's relative direction by applying a discrete time delay and cross-correlation to simulated olfactory receptor neuron (ORN) intensity signals. If the HRC model detected a left-to-right or right-to-left odor motion, the controller dynamically modulated steering commands to turn the agent toward the oncoming plume. To resolve heading ambiguities occurring when the plume encountered the agent directly from the front or back—where the standard bilateral HRC output drops to zero—the framework was expanded by proposing a novel, secondary HRC configuration operating within a single antenna.
 
-The complete control pipeline was evaluated through multiple simulation experiences, identifying the distinct advantages of bilateral motion-correlating mechanisms in plume tracking alongside the inherent structural limitations of bio-inspired sensory architectures when facing complex, non-linear trajectories.` },
+The complete control pipeline was implemented and evaluated through multiple physics-based simulation experiences within the MuJoCo simulator, utilizing its high-performance physics engine to test the agent's locomotion under different chemical concentration gradients. These experiments successfully identified the distinct advantages of bilateral motion-correlating mechanisms in plume tracking alongside the inherent structural limitations of bio-inspired sensory architectures when facing complex, non-linear trajectories.` },
+    
     'rocket-mpc': { report: `This project focused on the end-to-end design, implementation, and evaluation of advanced predictive control strategies to automate the flight of an underactuated rocket prototype. Operating on a complex 12-state system vector encompassing angular velocities, Euler angles, translational velocities, and positions, the rocket's position is managed exclusively through thrust-vectoring and a single main thruster. The control architecture was built progressively, beginning with a linearized state-space model to implement a Constrained Linear MPC regulator utilizing quadratic programming (QP) to enforce strict safety limits on thruster forces and gimbal pitch/roll angles. To eliminate steady-state offsets introduced by physical mismatches—such as unmodeled changes in rocket mass or external wind disturbances—the linear framework was extended by integrating a target tracking system alongside a steady-state disturbance estimator.
 
 The final phase of the project addressed the intrinsic structural limitations of linear controllers when handling highly coupled, non-linear system dynamics during aggressive roll maneuvering. Using CasADi, a Nonlinear Model Predictive Control (NMPC) framework was engineered to directly handle the full non-linear rocket physics over a moving finite horizon. Additionally, a robust delay-compensation script utilizing Euler integration was developed to mitigate computational latency and prevent closed-loop instability. Through extensive comparative simulations, this multi-modal control pipeline demonstrated the superior convergence, trajectory tracking accuracy, and robustness of non-linear predictive control under severe physical constraints.` },
@@ -251,6 +253,70 @@ function renderMarkdownMessage(message) {
     closeList();
 
     return htmlParts.join('');
+}
+
+function formatRecommendationCitation(pdfPath) {
+    if (!pdfPath) return '';
+
+    const fileName = String(pdfPath).split('/').pop().split('\\').pop().replace(/\.pdf$/i, '');
+    const parts = fileName.split('_').filter(Boolean);
+
+    if (parts.length < 2) return '';
+
+    const institution = parts[0];
+    const firstName = parts[1];
+    const lastName = parts.slice(2).join(' ') || '';
+    const initial = firstName.charAt(0).toUpperCase();
+
+    const titleByInstitution = {
+        EPFL: 'Prof.',
+        UTS: 'Prof.',
+        Autonomyo: 'Dr.'
+    };
+
+    const title = titleByInstitution[institution] || 'Prof.';
+    const suffix = lastName ? ` ${lastName}` : '';
+
+    return `${title} ${initial}.${suffix}, ${institution}`.trim();
+}
+
+function renderDynamicRecommendations() {
+    const recommendationsSection = document.getElementById('recommendations');
+    const recommendationsContainer = document.getElementById('dynamic-recommendations-container');
+
+    if (!recommendationsSection || !recommendationsContainer) return;
+
+    recommendationsContainer.innerHTML = '';
+
+    const recommendationCards = [];
+
+    projectCards.forEach((card) => {
+        const recommendationQuote = card.dataset.recommendationQuote || '';
+        const recommendationPdf = card.dataset.recommendationPdf || '';
+
+        if (!recommendationQuote.trim()) return;
+
+        const recommendationCitation = formatRecommendationCitation(recommendationPdf);
+        const quoteHtml = escapeHtml(recommendationQuote);
+        const citationHtml = escapeHtml(recommendationCitation || '');
+        const pdfHref = escapeHtml(recommendationPdf);
+
+        const recommendationCard = document.createElement('article');
+        recommendationCard.className = 'recommendation-card';
+        recommendationCard.innerHTML = `
+            <blockquote class="recommendation-quote">${quoteHtml}</blockquote>
+            <cite class="recommendation-cite">${citationHtml}</cite>
+            <a href="${pdfHref}" target="_blank" rel="noopener noreferrer" class="recommendation-btn">View Original Document (PDF)</a>
+        `;
+
+        recommendationCards.push(recommendationCard);
+    });
+
+    recommendationCards.forEach((recommendationCard) => {
+        recommendationsContainer.appendChild(recommendationCard);
+    });
+
+    recommendationsSection.style.display = recommendationCards.length > 0 ? 'block' : 'none';
 }
 
 function createLoadingMessage() {
@@ -718,6 +784,36 @@ function openModal(projectCardOrId) {
             : '<p>Additional resources can be shared upon request.</p>';
     }
 
+    // Populate recommendation (quote, author, pdf) if provided on the project card
+    const recommendationQuote = projectCard.dataset.recommendationQuote || '';
+    const recommendationAuthor = projectCard.dataset.recommendationAuthor || '';
+    const recommendationPdf = projectCard.dataset.recommendationPdf || '';
+
+    const recommendationSection = document.getElementById('modal-recommendation-section');
+    const recommendationQuoteEl = document.getElementById('modal-recommendation-quote');
+    const recommendationAuthorEl = document.getElementById('modal-recommendation-author');
+    const recommendationPdfLink = document.getElementById('modal-recommendation-pdf');
+    const fallbackRecommendationAuthor = recommendationPdf ? formatRecommendationCitation(recommendationPdf) : '';
+
+    if (recommendationQuote && recommendationQuote.trim()) {
+        if (recommendationSection) recommendationSection.style.display = '';
+        if (recommendationQuoteEl) recommendationQuoteEl.textContent = recommendationQuote;
+        if (recommendationAuthorEl) {
+            recommendationAuthorEl.textContent = recommendationAuthor || fallbackRecommendationAuthor;
+        }
+        if (recommendationPdfLink) {
+            if (recommendationPdf && recommendationPdf.trim()) {
+                recommendationPdfLink.href = recommendationPdf;
+                recommendationPdfLink.style.display = '';
+            } else {
+                recommendationPdfLink.href = '#';
+                recommendationPdfLink.style.display = 'none';
+            }
+        }
+    } else {
+        if (recommendationSection) recommendationSection.style.display = 'none';
+    }
+
     // Show modal
     projectModal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -810,6 +906,8 @@ window.addEventListener('scroll', updateActiveLink);
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    renderDynamicRecommendations();
+
     const hash = window.location.hash.substring(1);
     if (hash) {
         const targetSection = document.getElementById(hash);

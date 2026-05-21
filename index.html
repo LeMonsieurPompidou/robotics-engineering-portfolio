@@ -31,6 +31,7 @@
                         <li><a href="#skills" class="nav-link">Skills</a></li>
                         <li><a href="#projects" class="nav-link">Projects</a></li>
                         <li><a href="#about" class="nav-link">Profile</a></li>
+                        <li><a href="#recommendations" class="nav-link">Recommendations</a></li>
                         <li><a href="#contact" class="nav-link">Contact</a></li>
                     </ul>
                 </nav>
@@ -138,7 +139,9 @@
                         data-video="https://youtu.be/zVDL7uy1FhA, https://youtu.be/Z8wUxDSp8lk, https://youtu.be/2LS99n-bfFk" 
                         data-pdf="assets/reports/Master_Thesis.pdf" 
                         data-github="https://github.com/LeMonsieurPompidou/exoskeleton-adaptation-analysis" 
-                        data-collaboration="This thesis was a research collaboration between the Biorobotics Laboratory (BioRob) at EPFL and the University of Technology Sydney (UTS). The experimental phase and data collection were physically conducted at the UTS Robotics Instituteunder the supervision of A/Prof. Marc Carmichael and Prof. Auke Jan Ijspeert.">
+                        data-collaboration="This thesis was a research collaboration between the Biorobotics Laboratory (BioRob) at EPFL and the University of Technology Sydney (UTS). The experimental phase and data collection were physically conducted at the UTS Robotics Instituteunder the supervision of A/Prof. Marc Carmichael and Prof. Auke Jan Ijspeert."
+                        data-recommendation-quote="Sam produced work of a very high standard, combining strong analytical skills with practical engineering capability. He is a motivated and capable researcher with the ability to work both independently and collaboratively across disciplines."
+                        data-recommendation-pdf="assets/recommendations/UTS_Marc_Carmichael.pdf">
                             <div class="project-thumb project-thumb--image" style="background-image: url('assets/pictures/master thesis/Subject1_during_Experiment.jpeg');" aria-hidden="true"></div>
                             <div class="project-header">
                                 <h3 class="project-title">Master Thesis: Neuromuscular Adaptation to Exoskeleton Assistance</h3>
@@ -158,7 +161,9 @@
                         <!-- Internship: Autonomyo -->
                         <article class="project-card" role="button" tabindex="0" data-project-id="autonomyo" data-project-title="Rehabilitation Game & Instrumented Soles" data-project-date="Jul. 2024 - Jan. 2025" 
                         data-images="assets/pictures/autonomyo/Autonomyo_Physical_Prototype_V1.jpg, assets/pictures/autonomyo/Autonomyo_Isometric_CAD_Assembly.png, assets/pictures/autonomyo/Game_Interface_Bluetooth_Connection.png, assets/pictures/autonomyo/Game_Interface_CoM_Calibration.png, assets/pictures/autonomyo/Hardware_Architecture_and_Wiring_Schematic.png, assets/pictures/autonomyo/Sole_Bottom_View_Open_PCB_Sensor_Layout.png, assets/pictures/autonomyo/Sole_Bottom_View_Closed_Protective_Cover.png" 
-                        data-pdf="assets/reports/Autonomyo_Report.pdf">
+                        data-pdf="assets/reports/Autonomyo_Report.pdf"
+                        data-recommendation-quote="The candidate was able to work with a lot of autonomy throughout the project and demonstrated passion and dedication... His large education in robotics complemented by work experience, is a great asset for any company."
+                        data-recommendation-pdf="assets/recommendations/Autonomyo_Amalric_Ortlieb.pdf">
                             <div class="project-thumb project-thumb--image" style="background-image: url('assets/pictures/autonomyo/Autonomyo_Isometric_CAD_Assembly.png');" aria-hidden="true"></div>
                             <div class="project-header">
                                 <h3 class="project-title">Rehabilitation Game & Instrumented Soles</h3>
@@ -242,7 +247,9 @@
                         <article class="project-card" role="button" tabindex="0" data-project-id="legov" data-project-title="Virtual Environment for Rehabilitation (LegoPress & FES)" data-project-date="Feb. 2024 - Jun. 2024"
                             data-images="assets/pictures/legopress/Integration_of_LegoPress_with_Virtual_Reality.png, assets/pictures/legopress/LegoPress.jpg ,assets/pictures/legopress/User_Interface_of_the_Virtual_Rehabilitation_Environment.png, assets/pictures/legopress/Training_Mode.png, assets/pictures/legopress/Installation_Process.png"
                             data-video="https://youtu.be/N9PgBFOIQfg, https://youtu.be/jiSyVFfmmuc"
-                            data-pdf="assets/reports/Virtual_environment_for_rehabilitation_using_FES_and_LegoPress.pdf">
+                            data-pdf="assets/reports/Virtual_environment_for_rehabilitation_using_FES_and_LegoPress.pdf"
+                            data-recommendation-quote="Mr Rahnemayan is an outstanding student with different hands-on skills in programming and design... I am pleased to recommend Mr Rahnemayan to any company or institution looking for a conscientious engineer with an excellent practical sense."
+                            data-recommendation-pdf="assets/recommendations/EPFL_Mohamed_Bouri.pdf">
                             <div class="project-thumb project-thumb--image" style="background-image: url('assets/pictures/legopress/Integration_of_LegoPress_with_Virtual_Reality.png');" aria-hidden="true"></div>
                             <div class="project-header">
                                 <h3 class="project-title">Virtual Environment for Rehabilitation</h3>
@@ -393,6 +400,13 @@
         </section>
     </main>
 
+    <section id="recommendations" class="recommendations-section" style="display: none;">
+        <div class="container">
+            <h2 class="section-title">Recommendations</h2>
+            <div class="recommendations-grid" id="dynamic-recommendations-container"></div>
+        </div>
+    </section>
+
     <!-- Footer with Contact -->
     <footer id="contact" class="footer">
         <div class="container">
@@ -463,6 +477,13 @@
                     <section class="modal-section">
                         <h3>Tech Stack</h3>
                         <div id="modal-tech-stack" class="tech-stack-list"></div>
+                    </section>
+
+                    <section class="modal-section" id="modal-recommendation-section" style="display: none;">
+                        <h3>Recommendation</h3>
+                        <blockquote id="modal-recommendation-quote"></blockquote>
+                        <cite id="modal-recommendation-author"></cite>
+                        <p><a id="modal-recommendation-pdf" href="#" target="_blank" rel="noopener noreferrer">View Full Letter of Recommendation (PDF)</a></p>
                     </section>
                     
                     <section class="modal-section modal-links-section">

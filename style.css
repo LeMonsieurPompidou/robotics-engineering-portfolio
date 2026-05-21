@@ -548,6 +548,43 @@ main {
     white-space: pre-line;
 }
 
+/* Recommendation Section Styles */
+#modal-recommendation-section blockquote {
+    margin: 0;
+    padding: 1rem 1rem 1rem 1.1rem;
+    border-left: 6px solid var(--primary-color);
+    background: linear-gradient(90deg, rgba(59,130,246,0.02), transparent 20%);
+    color: var(--text-primary);
+    font-style: italic;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+#modal-recommendation-section cite {
+    display: block;
+    margin-top: 0.6rem;
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+#modal-recommendation-section a#modal-recommendation-pdf {
+    display: inline-block;
+    margin-top: 0.6rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+@media (hover: hover) {
+    #modal-recommendation-section a#modal-recommendation-pdf:hover {
+        text-decoration: underline;
+        color: var(--secondary-color);
+    }
+}
+
 .tech-stack-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -715,6 +752,100 @@ main {
     padding: var(--spacing-2xl) var(--spacing-md);
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
+}
+
+.recommendations-section {
+    position: relative;
+    background-color: #0f172a;
+    padding: var(--spacing-2xl) var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recommendations-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(to right, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.7), transparent 85%);
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: 0;
+}
+
+.recommendation-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    background: linear-gradient(165deg, rgba(17, 28, 48, 0.96), rgba(11, 18, 32, 0.96));
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: var(--spacing-lg);
+    transition: var(--transition);
+}
+
+@media (hover: hover) {
+    .recommendation-card:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(96, 165, 250, 0.6);
+        background: linear-gradient(165deg, rgba(19, 34, 59, 0.98), rgba(11, 18, 32, 0.98));
+    }
+}
+
+.recommendation-quote {
+    margin: 0;
+    padding: 0 0 0 1rem;
+    border-left: 4px solid var(--primary-color);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    line-height: 1.7;
+    font-style: italic;
+}
+
+.recommendation-cite {
+    display: block;
+    color: #bfdbfe;
+    font-family: var(--font-family-mono);
+    font-size: 0.95rem;
+    font-style: normal;
+    letter-spacing: 0.03em;
+}
+
+.recommendation-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    background: rgba(37, 99, 235, 0.14);
+    border: 1px solid rgba(96, 165, 250, 0.38);
+    color: #dbeafe;
+    font-family: var(--font-family-mono);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+@media (hover: hover) {
+    .recommendation-btn:hover {
+        background: rgba(59, 130, 246, 0.22);
+        border-color: rgba(96, 165, 250, 0.75);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
 }
 
 .section-title {
@@ -1608,6 +1739,10 @@ main {
         grid-template-columns: 1fr;
     }
 
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+
     /* Modal Responsive */
     .modal-container {
         width: 95%;
@@ -1633,6 +1768,10 @@ main {
     /* Skills Grid */
     .skills-grid {
         grid-template-columns: 1fr;
+    }
+
+    .recommendation-card {
+        padding: var(--spacing-md);
     }
 
     .skills-grid > .skill-category:nth-child(n) {
