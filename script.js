@@ -336,13 +336,15 @@ async function typeChatbotResponse(message, typingContent, messageBubble) {
 }
 
 async function fetchChatResponse(userMessage) {
+    const extendedContext = `${CHATBOT_SYSTEM_PROMPT}\n\n=== EXTENDED PORTFOLIO PROJECT REPORTS ===\n${JSON.stringify(projectData)}`;
+
     const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            context: CHATBOT_SYSTEM_PROMPT,
+            context: extendedContext,
             message: userMessage
         })
     });
@@ -415,7 +417,22 @@ async function sendMessage(event) {
         await typeChatbotResponse(aiReply, typingState.typingContent, typingState.messageBubble);
     } catch (error) {
         loadingMessage.remove();
-        appendChatMessage('Sorry, I am having trouble connecting right now.', 'bot');
+
+        // Smart bilingual fallback based on user message language hints
+        try {
+            const lower = String(userMessage || '').toLowerCase();
+            const frenchPattern = /\b(tu|vous|est|pour|bonjour|projet)\b/i;
+            const useFrench = frenchPattern.test(lower);
+
+            const fallback = useFrench
+                ? 'Désolé, ma connexion avec mes modules cérébraux a connu un léger problème. Pouvez-vous réessayer ?'
+                : 'Sorry, my neural communication modules experienced a connection timeout. Please try again.';
+
+            appendChatMessage(fallback, 'bot');
+        } catch (e) {
+            appendChatMessage('Sorry, I am having trouble connecting right now.', 'bot');
+        }
+
         console.error('Chatbot request failed:', error);
     } finally {
         setChatbotLoadingState(false);
