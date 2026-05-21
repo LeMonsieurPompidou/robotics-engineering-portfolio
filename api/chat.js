@@ -1,19 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-/**
- * Detects if the user message or context contains French language patterns
- * @param {string} message - The user message
- * @param {string} context - The conversation context
- * @returns {boolean} - True if French is detected
- */
-function isFrenchMessage(message = '', context = '') {
-    const frenchPatterns = /\b(je|tu|il|elle|nous|vous|ils|elles|le|la|les|un|une|des|de|du|et|ou|mais|car|donc|si|non|oui|merci|s'il|plaît|bonjour|bonsoir|ça|cela|celui|celle|où|quoi|comment|pourquoi|quel|quelle|combien|pas|plus|moins|très|aussi|bien|mal|bon|mauvais|grand|petit|nouveau|ancien|dernier|premier|autre|même|seul|tout|aucun)\b/gi;
-    
-    const combined = `${message} ${context}`;
-    const matches = combined.match(frenchPatterns) || [];
-    return matches.length > 2; // Threshold: 3+ French words detected
-}
-
 export default async function handler(req, res) {
     const requestOrigin = req.headers.origin || req.headers.referer || '*';
     res.setHeader('Access-Control-Allow-Credentials', requestOrigin !== '*' ? 'true' : 'false');
@@ -62,13 +48,9 @@ export default async function handler(req, res) {
 
         } catch (apiError) {
             console.error('Gemini API call failed:', apiError.message || String(apiError));
-            
-            // Detect language and provide appropriate fallback
-            const isFrench = isFrenchMessage(message, context);
-            const fallbackMessage = isFrench
-                ? 'Désolé, ma connexion avec mes modules cérébraux a connu un léger timeout. Pouvez-vous reformuler votre question ?'
-                : 'Sorry, my neural modules experienced a brief connection timeout. Could you please rephrase your question?';
-            
+
+            // Single-language (English) fallback for API failures
+            const fallbackMessage = 'Sorry, my neural modules experienced a brief connection timeout. Could you please rephrase your question?';
             return res.status(200).json({ reply: fallbackMessage });
         }
 
