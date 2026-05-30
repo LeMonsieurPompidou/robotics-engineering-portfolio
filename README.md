@@ -66,3 +66,11 @@ npm install
 npm run dev
 ```
 The development server will run your Vercel functions locally at `http://localhost:3000/api/chat`
+
+## 📄 License
+
+- **Code**: The website source code in this repository (HTML, CSS, JavaScript, and the Vercel serverless functions under `api/`) is licensed under the MIT License — see [LICENSE](LICENSE) for the full text. You are free to use, modify, and distribute the code under the terms of that license.
+
+- **Personal & Project Content (All Rights Reserved)**: Personal content in this repository — including written project descriptions (e.g. Master Thesis, Rocket Drone MPC), images, photographs, identity details, and any other personal or project-specific content — is NOT covered by the MIT License and is not available for commercial reuse, republishing, or plagiarism. If you wish to reuse or repurpose any personal or project materials, please contact me for permission.
+
+If you have questions about licensing or reuse, open an issue on this repository or contact me via the contact information on the site.
