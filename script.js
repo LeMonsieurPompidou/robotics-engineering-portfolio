@@ -120,6 +120,15 @@ The research extended into mathematical and computational modeling to validate t
     'poppins': { report: `Developed as part of the Innovation Management course at EPFL by a collaborative team of seven students, this project focused on the complete conceptualization, strategic planning, and operational design of "Poppins' Sharing Boxes". The project addressed the widespread challenge of social isolation and unsustainable consumption within student micro-communities by introducing an automated physical locker network combined with a digital sharing platform. This framework allowed university students living in tight-budget, small-apartment configurations to securely lock away, catalog, rent, and borrow underutilized recreational and utilitarian goods—such as sporting equipment, kitchen appliances, and repair tools—thereby simultaneously fostering community interactions, optimizing living spaces, and promoting a circular economy.
 
 On the strategic management and development side, the project required a comprehensive, multi-layered business analysis to validate market viability and map out a realistic path to deployment. The process began with a market validation survey gathering data from over 50 respondents to identify target product demands, which directly fed into a structured SWOT analysis and an expansive stakeholder mapping matrix encompassing entities from local student housing foundations (FMEL) to municipal regulatory bodies. Following these market studies, a complete go-to-market schedule was plotted through a detailed Gantt chart tracking synchronized development phases across hardware locker assembly, electronic actuation control, mobile application user-interface design, and local community-building campaigns. To ensure long-term platform maintenance and accountability, a closed-loop gamified trust framework was designed, forcing users to evaluate and rate the condition of items upon retrieval, which successfully established a high-trust, low-overhead peer-to-peer asset management model engineered for dense student ecosystems.` }
+    }
+;
+
+projectData['ephemeral-vpn'] = {
+    report: `This project addresses the operational need for secure, on-demand remote network access without incurring the permanent overhead and security exposure of a continuously active VPN gateway. Built completely using Terraform, the infrastructure automates the end-to-end provisioning and destruction cycles of temporary cloud-hosted VPN endpoints. The architecture isolates cryptographic keys and session parameters dynamically, ensuring that the gateway remains alive strictly during active workloads before executing a secure teardown. This programmatic DevOps approach eliminates structural cloud maintenance costs while enforcing a zero-trust network footprint.`
+};
+
+projectData['muscu-app'] = {
+    report: `This personal engineering initiative focuses on creating a comprehensive, locally constrained mobile tracking system combining bodybuilding logging, caloric tracking, and workout timers. The project was executed in two structural phases. The first phase involved complete UI/UX benchmarking and layout prototyping, resulting in an open-source design dashboard built using React, TypeScript, and shadcn/ui to map out views, state management, and user flows. The second phase translated these concepts into a production-ready pipeline, utilizing Python and the Kivy framework alongside Buildozer to compile a standalone Android package (.apk). To ensure complete local autonomy and performance without external cloud database dependencies, the application embeds a robust SQLite architecture managing data relational persistence for user history, progress vectors, and exercise parameters.`
 };
 
 // =============================================
@@ -602,6 +611,7 @@ function openModal(projectCardOrId) {
     const galleryContainer = document.getElementById('modal-gallery');
     if (galleryContainer) {
         galleryContainer.innerHTML = '';
+        galleryContainer.style.display = '';
 
         const createMediaSection = (sectionTitle, items, renderItem) => {
             if (items.length === 0) {
@@ -738,27 +748,8 @@ function openModal(projectCardOrId) {
         createMediaSection('Videos', videos, createVideoItem);
         createMediaSection('Pictures', images, createImageItem);
 
-        // Fallback: if no images/video, show placeholder with project title
         if (videos.length === 0 && images.length === 0) {
-            const section = document.createElement('section');
-            section.className = 'modal-gallery-section';
-
-            const heading = document.createElement('h3');
-            heading.className = 'modal-gallery-title';
-            heading.textContent = 'Media';
-
-            const placeholder = document.createElement('div');
-            placeholder.className = 'modal-gallery-empty';
-            placeholder.textContent = 'No media available.';
-
-            const titleCaption = document.createElement('div');
-            titleCaption.className = 'modal-gallery-caption';
-            titleCaption.textContent = title || 'Media';
-
-            section.appendChild(heading);
-            section.appendChild(placeholder);
-            section.appendChild(titleCaption);
-            galleryContainer.appendChild(section);
+            galleryContainer.style.display = 'none';
         }
     }
 
