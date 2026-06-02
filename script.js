@@ -300,25 +300,36 @@ function renderDynamicRecommendations() {
     const recommendationCards = [];
 
     projectCards.forEach((card) => {
-        const recommendationQuote = card.dataset.recommendationQuote || '';
-        const recommendationPdf = card.dataset.recommendationPdf || '';
+        const recs = [];
+        const recommendationQuote = card.dataset.recommendationQuote || card.getAttribute('data-recommendation-quote') || '';
+        const recommendationPdf = card.dataset.recommendationPdf || card.getAttribute('data-recommendation-pdf') || '';
+        const recommendationQuote2 = card.dataset.recommendationQuote2 || card.getAttribute('data-recommendation-quote-2') || card.getAttribute('data-recommendation-quote2') || '';
+        const recommendationPdf2 = card.dataset.recommendationPdf2 || card.getAttribute('data-recommendation-pdf-2') || card.getAttribute('data-recommendation-pdf2') || '';
 
-        if (!recommendationQuote.trim()) return;
+        if (recommendationQuote && recommendationQuote.trim()) {
+            recs.push({ quote: recommendationQuote, pdf: recommendationPdf });
+        }
 
-        const recommendationCitation = formatRecommendationCitation(recommendationPdf);
-        const quoteHtml = escapeHtml(recommendationQuote);
-        const citationHtml = escapeHtml(recommendationCitation || '');
-        const pdfHref = escapeHtml(recommendationPdf);
+        if (recommendationQuote2 && recommendationQuote2.trim()) {
+            recs.push({ quote: recommendationQuote2, pdf: recommendationPdf2 });
+        }
 
-        const recommendationCard = document.createElement('article');
-        recommendationCard.className = 'recommendation-card';
-        recommendationCard.innerHTML = `
-            <blockquote class="recommendation-quote">${quoteHtml}</blockquote>
-            <cite class="recommendation-cite">${citationHtml}</cite>
-            <a href="${pdfHref}" target="_blank" rel="noopener noreferrer" class="recommendation-btn">View Original Document (PDF)</a>
-        `;
+        recs.forEach((r) => {
+            const recommendationCitation = formatRecommendationCitation(r.pdf);
+            const quoteHtml = escapeHtml(r.quote);
+            const citationHtml = escapeHtml(recommendationCitation || '');
+            const pdfHref = escapeHtml(r.pdf || '');
 
-        recommendationCards.push(recommendationCard);
+            const recommendationCard = document.createElement('article');
+            recommendationCard.className = 'recommendation-card';
+            recommendationCard.innerHTML = `
+                <blockquote class="recommendation-quote">${quoteHtml}</blockquote>
+                <cite class="recommendation-cite">${citationHtml}</cite>
+                ${pdfHref ? `<a href="${pdfHref}" target="_blank" rel="noopener noreferrer" class="recommendation-btn">View Original Document (PDF)</a>` : ''}
+            `;
+
+            recommendationCards.push(recommendationCard);
+        });
     });
 
     recommendationCards.forEach((recommendationCard) => {
@@ -775,32 +786,36 @@ function openModal(projectCardOrId) {
             : '<p>Additional resources can be shared upon request.</p>';
     }
 
-    // Populate recommendation (quote, author, pdf) if provided on the project card
-    const recommendationQuote = projectCard.dataset.recommendationQuote || '';
-    const recommendationAuthor = projectCard.dataset.recommendationAuthor || '';
-    const recommendationPdf = projectCard.dataset.recommendationPdf || '';
+    // Populate recommendation(s) if provided on the project card
+    const recs = [];
+    const r1 = projectCard.dataset.recommendationQuote || projectCard.getAttribute('data-recommendation-quote') || '';
+    const r1pdf = projectCard.dataset.recommendationPdf || projectCard.getAttribute('data-recommendation-pdf') || '';
+    const r2 = projectCard.dataset.recommendationQuote2 || projectCard.getAttribute('data-recommendation-quote-2') || projectCard.getAttribute('data-recommendation-quote2') || '';
+    const r2pdf = projectCard.dataset.recommendationPdf2 || projectCard.getAttribute('data-recommendation-pdf-2') || projectCard.getAttribute('data-recommendation-pdf2') || '';
+
+    if (r1 && r1.trim()) recs.push({ quote: r1.trim(), pdf: r1pdf || '' });
+    if (r2 && r2.trim()) recs.push({ quote: r2.trim(), pdf: r2pdf || '' });
 
     const recommendationSection = document.getElementById('modal-recommendation-section');
-    const recommendationQuoteEl = document.getElementById('modal-recommendation-quote');
-    const recommendationAuthorEl = document.getElementById('modal-recommendation-author');
-    const recommendationPdfLink = document.getElementById('modal-recommendation-pdf');
-    const fallbackRecommendationAuthor = recommendationPdf ? formatRecommendationCitation(recommendationPdf) : '';
 
-    if (recommendationQuote && recommendationQuote.trim()) {
+    if (recs.length > 0) {
         if (recommendationSection) recommendationSection.style.display = '';
-        if (recommendationQuoteEl) recommendationQuoteEl.textContent = recommendationQuote;
-        if (recommendationAuthorEl) {
-            recommendationAuthorEl.textContent = recommendationAuthor || fallbackRecommendationAuthor;
-        }
-        if (recommendationPdfLink) {
-            if (recommendationPdf && recommendationPdf.trim()) {
-                recommendationPdfLink.href = recommendationPdf;
-                recommendationPdfLink.style.display = '';
-            } else {
-                recommendationPdfLink.href = '#';
-                recommendationPdfLink.style.display = 'none';
-            }
-        }
+
+        // Build HTML for one or multiple recommendations
+        const recHtml = recs.map((item) => {
+            const citeText = item.pdf ? formatRecommendationCitation(item.pdf) : '';
+            const quote = escapeHtml(item.quote);
+            const cite = escapeHtml(citeText || '');
+            const pdfLink = item.pdf ? `<p><a href="${escapeHtml(item.pdf)}" target="_blank" rel="noopener noreferrer">View Full Letter of Recommendation (PDF)</a></p>` : '';
+
+            return `
+                <blockquote class="recommendation-quote">${quote}</blockquote>
+                <cite class="recommendation-cite">${cite}</cite>
+                ${pdfLink}
+            `;
+        }).join('<hr class="recommendation-separator"/>');
+
+        recommendationSection.innerHTML = `<h3>Recommendation</h3>${recHtml}`;
     } else {
         if (recommendationSection) recommendationSection.style.display = 'none';
     }
