@@ -978,6 +978,59 @@ main {
     pointer-events: none;
 }
 
+.project-thumb--vpn {
+    background:
+        radial-gradient(circle at 50% 48%, rgba(59, 130, 246, 0.24), transparent 24%),
+        radial-gradient(circle at 20% 18%, rgba(96, 165, 250, 0.18), transparent 34%),
+        radial-gradient(circle at 80% 22%, rgba(56, 189, 248, 0.12), transparent 28%),
+        linear-gradient(165deg, #111827 0%, #0f172a 48%, #08111f 100%);
+}
+
+.project-thumb-vpn-scene {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.project-thumb-vpn-scene svg {
+    display: none;
+}
+
+.project-thumb-vpn-scene path,
+.project-thumb-vpn-scene circle,
+.project-thumb-vpn-scene rect,
+.project-thumb-vpn-scene line {
+    stroke: currentColor;
+    fill: none;
+}
+
+.project-thumb-vpn-mark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 78px;
+    height: 78px;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.18), rgba(15, 23, 42, 0.6) 72%);
+    box-shadow:
+        0 0 0 1px rgba(96, 165, 250, 0.32),
+        0 0 42px rgba(59, 130, 246, 0.28);
+}
+
+.project-thumb-vpn-mark img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    display: block;
+}
+
 .project-thumb-icon {
     position: relative;
     z-index: 1;
