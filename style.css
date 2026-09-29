@@ -765,20 +765,23 @@
     gap: 0.7rem;
 }
 
-.chatbot-retry {
+.chatbot-retry-btn {
     justify-self: start;
     padding: 0.48rem 0.75rem;
     border: 1px solid var(--brand);
     border-radius: 4px;
-    background: var(--brand);
-    color: #fff;
+    background: var(--brand-soft);
+    color: var(--brand-strong);
     cursor: pointer;
     font: 700 0.72rem var(--font-family-mono);
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.chatbot-retry:hover,
-.chatbot-retry:focus-visible {
+.chatbot-retry-btn:hover,
+.chatbot-retry-btn:focus-visible {
     background: var(--brand-strong);
+    color: #fff;
+    transform: translateY(-1px);
 }
 
 @media (min-width: 769px) {

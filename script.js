@@ -1343,6 +1343,10 @@ async function fetchChatResponse(userMessage) {
         responsePayload = { reply: await response.text() };
     }
 
+    if (responsePayload && typeof responsePayload === 'object' && responsePayload.error) {
+        throw new Error(String(responsePayload.error));
+    }
+
     return parseChatApiResponse(responsePayload);
 }
 
@@ -1372,6 +1376,21 @@ function parseChatApiResponse(responsePayload) {
     return 'I received your message, but I do not have a response yet.';
 }
 
+function isChatbotFailureResponse(message) {
+    const normalizedMessage = String(message || '').trim();
+    if (!normalizedMessage) return true;
+
+    const failurePatterns = [
+        /sorry,?\s+my neural modules experienced a brief connection timeout/i,
+        /sorry,?\s+(?:i am|i'm) having trouble connecting/i,
+        /(?:connection|request)\s+(?:timed?\s*out|timeout|failed)/i,
+        /service (?:is )?(?:temporarily )?unavailable/i,
+        /unable to (?:connect|reach the (?:ai|service|server))/i
+    ];
+
+    return failurePatterns.some((pattern) => pattern.test(normalizedMessage));
+}
+
 function appendChatError(userMessage) {
     const messageRow = document.createElement('div');
     messageRow.className = 'chatbot-message bot chatbot-error';
@@ -1383,7 +1402,7 @@ function appendChatError(userMessage) {
 
     const retryButton = document.createElement('button');
     retryButton.type = 'button';
-    retryButton.className = 'chatbot-retry';
+    retryButton.className = 'chatbot-retry-btn';
     retryButton.dataset.i18n = 'chatbot.retry';
     retryButton.textContent = getTranslationValue(currentLanguage, 'chatbot.retry') || 'Retry';
     retryButton.addEventListener('click', () => {
@@ -1411,6 +1430,11 @@ async function submitChatMessage(userMessage, appendUserMessage = true) {
 
     try {
         const aiReply = await fetchChatResponse(userMessage);
+
+        if (isChatbotFailureResponse(aiReply)) {
+            throw new Error('Chat service returned a connection fallback response.');
+        }
+
         loadingMessage.remove();
         const typingState = createTypingMessage();
         chatbotMessages.appendChild(typingState.messageRow);
