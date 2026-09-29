@@ -22,6 +22,7 @@ const chatbotForm = document.getElementById('chatbot-form');
 const chatbotInput = document.getElementById('chatbot-input');
 const chatbotMessages = document.getElementById('chatbot-messages');
 const chatbotSendButton = chatbotForm ? chatbotForm.querySelector('.chatbot-send') : null;
+const chatbotResizeHandle = chatbotPanel ? chatbotPanel.querySelector('.chatbot-resize-handle') : null;
 const projectSearchInput = document.getElementById('project-search-input');
 const projectSearchClear = document.getElementById('project-search-clear');
 const projectSearchStatus = document.getElementById('project-search-status');
@@ -30,6 +31,7 @@ const langButtons = document.querySelectorAll('.lang-btn');
 let currentLanguage = 'en';
 const projectCardOriginals = new Map();
 let activeModalProjectCard = null;
+const CHATBOT_DISMISSED_KEY = 'portfolioChatbotDismissed';
 
 // =============================================
 // CLIENT-SIDE LANGUAGE SWITCHER
@@ -100,6 +102,8 @@ const translations = {
             welcomeMessage: "Hi, I'm Sam's portfolio assistant. Ask me about robotics projects, control systems, or his background.",
             inputPlaceholder: 'Ask about projects, skills, or experience...',
             send: 'Send',
+            error: 'Sorry, I am having trouble connecting right now.',
+            retry: 'Retry',
             connectionError: 'Sorry, I am having trouble connecting right now.'
         },
         recommendations: {
@@ -313,7 +317,9 @@ const translations = {
             welcomeMessage: 'Bonjour, je suis l\'assistant virtuel de Sam. Posez-moi vos questions sur ses projets en robotique, ses systèmes de contrôle ou son parcours.',
             inputPlaceholder: 'Posez une question sur les projets, compétences...',
             send: 'Envoyer',
-            connectionError: 'Désolé, je rencontre actuellement un problème de connexion.'
+            error: 'Désolé, la connexion a échoué pour le moment.',
+            retry: 'Réessayer',
+            connectionError: 'Désolé, la connexion a échoué pour le moment.'
         },
         recommendations: {
             eyebrow: 'Recommandations',
@@ -989,12 +995,72 @@ function updateChatbotState(isOpen) {
 
 function toggleChatWindow() {
     if (!chatbotPanel) return;
-    updateChatbotState(!chatbotPanel.classList.contains('active'));
+    const isOpen = chatbotPanel.classList.contains('active');
+
+    if (isOpen) {
+        rememberChatbotDismissal();
+    }
+
+    updateChatbotState(!isOpen);
 }
 
 function closeChatWindow() {
     if (!chatbotPanel) return;
+    rememberChatbotDismissal();
     updateChatbotState(false);
+}
+
+function rememberChatbotDismissal() {
+    try {
+        sessionStorage.setItem(CHATBOT_DISMISSED_KEY, 'true');
+    } catch (error) {
+        // Keep the close action working when browser storage is unavailable.
+    }
+}
+
+function wasChatbotDismissed() {
+    try {
+        return sessionStorage.getItem(CHATBOT_DISMISSED_KEY) === 'true';
+    } catch (error) {
+        return false;
+    }
+}
+
+function initializeChatbotResize() {
+    if (!chatbotPanel || !chatbotResizeHandle) return;
+
+    chatbotResizeHandle.addEventListener('pointerdown', (event) => {
+        if (!window.matchMedia('(min-width: 769px)').matches) return;
+
+        event.preventDefault();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startWidth = chatbotPanel.offsetWidth;
+        const startHeight = chatbotPanel.offsetHeight;
+        chatbotResizeHandle.setPointerCapture(event.pointerId);
+        chatbotPanel.classList.add('is-resizing');
+
+        const resizePanel = (moveEvent) => {
+            const maxWidth = window.innerWidth * 0.9;
+            const maxHeight = window.innerHeight * 0.85;
+            const nextWidth = Math.min(maxWidth, Math.max(320, startWidth + startX - moveEvent.clientX));
+            const nextHeight = Math.min(maxHeight, Math.max(400, startHeight + startY - moveEvent.clientY));
+
+            chatbotPanel.style.width = `${nextWidth}px`;
+            chatbotPanel.style.height = `${nextHeight}px`;
+        };
+
+        const stopResizing = () => {
+            chatbotPanel.classList.remove('is-resizing');
+            chatbotResizeHandle.removeEventListener('pointermove', resizePanel);
+            chatbotResizeHandle.removeEventListener('pointerup', stopResizing);
+            chatbotResizeHandle.removeEventListener('pointercancel', stopResizing);
+        };
+
+        chatbotResizeHandle.addEventListener('pointermove', resizePanel);
+        chatbotResizeHandle.addEventListener('pointerup', stopResizing);
+        chatbotResizeHandle.addEventListener('pointercancel', stopResizing);
+    });
 }
 
 function appendChatMessage(message, author = 'bot') {
@@ -1306,16 +1372,36 @@ function parseChatApiResponse(responsePayload) {
     return 'I received your message, but I do not have a response yet.';
 }
 
-async function sendMessage(event) {
-    event.preventDefault();
+function appendChatError(userMessage) {
+    const messageRow = document.createElement('div');
+    messageRow.className = 'chatbot-message bot chatbot-error';
 
-    const userMessage = chatbotInput.value.trim();
-    if (!userMessage) {
-        return;
+    const message = document.createElement('p');
+    message.dataset.i18n = 'chatbot.error';
+    message.textContent = getTranslationValue(currentLanguage, 'chatbot.error')
+        || 'Sorry, I am having trouble connecting right now.';
+
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.className = 'chatbot-retry';
+    retryButton.dataset.i18n = 'chatbot.retry';
+    retryButton.textContent = getTranslationValue(currentLanguage, 'chatbot.retry') || 'Retry';
+    retryButton.addEventListener('click', () => {
+        messageRow.remove();
+        submitChatMessage(userMessage, false);
+    }, { once: true });
+
+    messageRow.append(message, retryButton);
+    chatbotMessages.appendChild(messageRow);
+    scrollChatToBottom();
+}
+
+async function submitChatMessage(userMessage, appendUserMessage = true) {
+    if (!userMessage) return;
+
+    if (appendUserMessage) {
+        appendChatMessage(userMessage, 'user');
     }
-
-    appendChatMessage(userMessage, 'user');
-    chatbotInput.value = '';
 
     const loadingMessage = createLoadingMessage();
     chatbotMessages.appendChild(loadingMessage);
@@ -1332,15 +1418,21 @@ async function sendMessage(event) {
         await typeChatbotResponse(aiReply, typingState.typingContent, typingState.messageBubble);
     } catch (error) {
         loadingMessage.remove();
-        appendChatMessage(
-            getTranslationValue(currentLanguage, 'chatbot.connectionError')
-                || 'Sorry, I am having trouble connecting right now.',
-            'bot'
-        );
+        appendChatError(userMessage);
         console.error('Chatbot request failed:', error);
     } finally {
         setChatbotLoadingState(false);
     }
+}
+
+async function sendMessage(event) {
+    event.preventDefault();
+
+    const userMessage = chatbotInput.value.trim();
+    if (!userMessage) return;
+
+    chatbotInput.value = '';
+    await submitChatMessage(userMessage);
 }
 
 if (hamburger) hamburger.addEventListener('click', toggleMenu);
@@ -1469,7 +1561,7 @@ function handleSkillFilterActivation(skillTag) {
     if (projectCards.length === 0) {
         const matchedProjectIds = getMatchedProjectIds(skillTag);
         if (matchedProjectIds.length > 0) {
-            window.location.href = `projects.html?projects=${encodeURIComponent(matchedProjectIds.join(','))}`;
+            window.location.href = `/projects?projects=${encodeURIComponent(matchedProjectIds.join(','))}`;
         }
         return;
     }
@@ -1936,6 +2028,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDynamicRecommendations();
+    initializeChatbotResize();
+
+    if (chatbotPanel && !wasChatbotDismissed()) {
+        window.setTimeout(() => updateChatbotState(true), 700);
+    }
 
     const projectQuery = new URLSearchParams(window.location.search).get('projects');
     if (projectQuery && projectCards.length > 0) {
