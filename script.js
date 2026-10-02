@@ -31,7 +31,25 @@ const langButtons = document.querySelectorAll('.lang-btn');
 let currentLanguage = 'en';
 const projectCardOriginals = new Map();
 let activeModalProjectCard = null;
+let projectRouteOpenTimer = null;
 const CHATBOT_DISMISSED_KEY = 'portfolioChatbotDismissed';
+
+const PROJECT_SLUGS = Object.freeze({
+    autonomyo: { en: 'soles', fr: 'semelles' },
+    thesis: { en: 'exoskeleton-thesis', fr: 'these-exosquelette' },
+    'rocket-mpc': { en: 'rocket-drone', fr: 'drone-fusee' },
+    crazyfly: { en: 'crazyfly', fr: 'crazyfly' },
+    'robot-competition': { en: 'duplo-robot', fr: 'robot-duplo' },
+    legov: { en: 'vr-rehab', fr: 'reeducation-rv' },
+    'gait-phase': { en: 'gait-phase', fr: 'phase-marche' },
+    zebrafish: { en: 'zebrafish', fr: 'poisson-zebre' },
+    'auto-nav': { en: 'autonomous-navigation', fr: 'navigation-autonome' },
+    olfactory: { en: 'olfactory-algorithm', fr: 'algorithme-olfactif' },
+    'ephemeral-vpn': { en: 'heres-vpn', fr: 'heres-vpn' },
+    'muscu-app': { en: 'fitness-tracker', fr: 'suivi-musculation' },
+    'econometrics-r': { en: 'econometrics', fr: 'econometrie' },
+    poppins: { en: 'sharing-boxes', fr: 'boites-partage' }
+});
 
 // =============================================
 // CLIENT-SIDE LANGUAGE SWITCHER
@@ -725,7 +743,7 @@ function applyLanguage(language) {
     renderDynamicRecommendations();
 
     if (activeModalProjectCard && projectModal && projectModal.classList.contains('active')) {
-        openModal(activeModalProjectCard);
+        openModal(activeModalProjectCard, { historyMode: 'replace' });
     }
 }
 
@@ -1651,8 +1669,64 @@ navLinks.forEach(link => {
 // MODAL FUNCTIONALITY
 // =============================================
 
-function openModal(projectCardOrId) {
+function getProjectSlug(projectId, language = currentLanguage) {
+    const slugs = PROJECT_SLUGS[projectId];
+    if (!slugs) return '';
+    return slugs[language] || slugs.en || '';
+}
+
+function resolveProjectSlug(rawSlug) {
+    let slug = '';
+
+    try {
+        slug = decodeURIComponent(String(rawSlug || '')).trim().toLowerCase();
+    } catch (error) {
+        return null;
+    }
+
+    if (!slug) return null;
+
+    for (const [projectId, aliases] of Object.entries(PROJECT_SLUGS)) {
+        const matchesEnglish = aliases.en === slug;
+        const matchesFrench = aliases.fr === slug;
+
+        if (matchesEnglish || matchesFrench) {
+            const language = matchesFrench && !matchesEnglish
+                ? 'fr'
+                : matchesEnglish && !matchesFrench
+                    ? 'en'
+                    : currentLanguage;
+            return { projectId, language, slug };
+        }
+    }
+
+    return null;
+}
+
+function getProjectRouteFromLocation() {
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const projectsIndex = pathSegments.findIndex((segment) => segment === 'projects' || segment === 'projects.html');
+    const pathSlug = projectsIndex >= 0 ? pathSegments[projectsIndex + 1] || '' : '';
+    const hashSlug = window.location.hash.replace(/^#/, '');
+
+    return resolveProjectSlug(pathSlug) || resolveProjectSlug(hashSlug);
+}
+
+function updateProjectUrl(projectId, historyMode = 'push') {
+    const slug = getProjectSlug(projectId);
+    if (!slug) return;
+
+    const targetPath = `/projects/${slug}`;
+    const currentPath = `${window.location.pathname}${window.location.hash}`;
+    if (currentPath === targetPath) return;
+
+    const method = historyMode === 'replace' ? 'replaceState' : 'pushState';
+    window.history[method](null, '', targetPath);
+}
+
+function openModal(projectCardOrId, options = {}) {
     if (!projectModal) return;
+    const { syncUrl = true, historyMode = 'push' } = options;
     // Accept either a DOM element (preferred) or a projectId string.
     let projectCard = projectCardOrId;
     if (typeof projectCardOrId === 'string') {
@@ -1942,13 +2016,78 @@ function openModal(projectCardOrId) {
     // Show modal
     projectModal.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    if (syncUrl) {
+        updateProjectUrl(projectId, historyMode);
+    }
 }
 
-function closeModal() {
+function closeModal(options = {}) {
     if (!projectModal) return;
+    const { syncUrl = true, historyMode = 'push' } = options;
+    if (projectRouteOpenTimer) {
+        window.clearTimeout(projectRouteOpenTimer);
+        projectRouteOpenTimer = null;
+    }
     projectModal.classList.remove('active');
     activeModalProjectCard = null;
     document.body.style.overflow = '';
+
+    if (syncUrl && window.location.pathname.startsWith('/projects')) {
+        const method = historyMode === 'replace' ? 'replaceState' : 'pushState';
+        window.history[method](null, '', '/projects');
+    }
+}
+
+function openProjectRoute(route, options = {}) {
+    if (!route || projectCards.length === 0) return false;
+
+    const card = document.querySelector(`.project-card[data-project-id="${route.projectId}"]`);
+    if (!card) return false;
+
+    if (route.language && currentLanguage !== route.language) {
+        if (projectModal && projectModal.classList.contains('active')) {
+            closeModal({ syncUrl: false });
+        }
+        applyLanguage(route.language);
+    }
+
+    const { scroll = false, smooth = true } = options;
+    const showModal = () => openModal(card, { syncUrl: false });
+
+    if (projectRouteOpenTimer) {
+        window.clearTimeout(projectRouteOpenTimer);
+        projectRouteOpenTimer = null;
+    }
+
+    if (scroll) {
+        card.scrollIntoView({
+            behavior: smooth ? 'smooth' : 'auto',
+            block: 'center'
+        });
+        projectRouteOpenTimer = window.setTimeout(() => {
+            projectRouteOpenTimer = null;
+            showModal();
+        }, smooth ? 320 : 0);
+    } else {
+        showModal();
+    }
+
+    return true;
+}
+
+function syncProjectModalWithLocation(options = {}) {
+    if (!projectModal) return;
+
+    const route = getProjectRouteFromLocation();
+    if (route) {
+        openProjectRoute(route, options);
+    } else if (projectModal.classList.contains('active')) {
+        closeModal({ syncUrl: false });
+    } else if (projectRouteOpenTimer) {
+        window.clearTimeout(projectRouteOpenTimer);
+        projectRouteOpenTimer = null;
+    }
 }
 
 // Close modal on overlay click
@@ -1956,6 +2095,10 @@ if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
 
 // Close modal on X button click
 if (modalClose) modalClose.addEventListener('click', closeModal);
+
+window.addEventListener('popstate', () => {
+    syncProjectModalWithLocation({ scroll: false });
+});
 
 // Close modal on Escape key
 document.addEventListener('keydown', (e) => {
@@ -2069,8 +2212,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(scrollToFirstActiveProject, 120);
     }
 
+    const projectRoute = getProjectRouteFromLocation();
+    const openedDeepLink = projectRoute
+        ? openProjectRoute(projectRoute, {
+            scroll: true,
+            smooth: !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        })
+        : false;
+
     const hash = window.location.hash.substring(1);
-    if (hash) {
+    if (hash && !openedDeepLink) {
         const targetSection = document.getElementById(hash);
         if (targetSection) {
             setTimeout(() => {
