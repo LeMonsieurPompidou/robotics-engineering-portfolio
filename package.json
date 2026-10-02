@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev --listen 3000",
+    "verify:assets": "node scripts/verify-assets.js",
+    "prebuild": "npm run verify:assets",
     "build": "echo 'Static site + serverless API (no build step)'"
   },
   "keywords": [

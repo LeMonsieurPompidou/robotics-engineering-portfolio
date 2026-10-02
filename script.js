@@ -1783,6 +1783,76 @@ navLinks.forEach(link => {
 // MODAL FUNCTIONALITY
 // =============================================
 
+const assetAvailabilityCache = new Map();
+
+function isLocalAssetUrl(assetUrl) {
+    const value = String(assetUrl || '').trim();
+    return /^(?:\.\/|\/)?assets\//i.test(value);
+}
+
+function checkLocalAssetAvailability(assetUrl) {
+    const value = String(assetUrl || '').trim();
+    if (!value) return Promise.resolve(false);
+    if (!isLocalAssetUrl(value) || window.location.protocol === 'file:') return Promise.resolve(true);
+    if (assetAvailabilityCache.has(value)) return assetAvailabilityCache.get(value);
+
+    const availabilityRequest = fetch(value, {
+        method: 'HEAD',
+        cache: 'no-store'
+    })
+        .then((response) => response.ok)
+        .catch(() => false);
+
+    assetAvailabilityCache.set(value, availabilityRequest);
+    return availabilityRequest;
+}
+
+function applyProjectThumbnailFallback(thumbnail) {
+    if (!thumbnail || thumbnail.dataset.fallbackApplied === 'true') return;
+
+    thumbnail.dataset.fallbackApplied = 'true';
+    thumbnail.classList.remove('project-thumb--image', 'project-thumb--vpn');
+    thumbnail.classList.add('project-thumb--placeholder', 'project-thumb--fallback');
+    thumbnail.style.removeProperty('background-image');
+    thumbnail.replaceChildren();
+
+    const icon = document.createElement('div');
+    icon.className = 'project-thumb-icon project-thumb-fallback-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = `
+        <svg viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+            <rect x="10" y="13" width="44" height="38" rx="5"></rect>
+            <circle cx="24" cy="26" r="4"></circle>
+            <path d="m15 45 12-11 8 7 6-6 8 10"></path>
+        </svg>
+    `;
+    thumbnail.appendChild(icon);
+}
+
+function initializeProjectThumbnailFallbacks() {
+    document.querySelectorAll('.project-thumb--image').forEach((thumbnail) => {
+        const backgroundImage = thumbnail.style.backgroundImage || '';
+        const imageUrl = backgroundImage.match(/^url\((['"]?)(.*)\1\)$/i)?.[2]?.trim();
+
+        if (!imageUrl) {
+            applyProjectThumbnailFallback(thumbnail);
+            return;
+        }
+
+        const preloadImage = new Image();
+        preloadImage.addEventListener('error', () => applyProjectThumbnailFallback(thumbnail), { once: true });
+        preloadImage.src = imageUrl;
+    });
+
+    document.querySelectorAll('.project-thumb img').forEach((image) => {
+        const thumbnail = image.closest('.project-thumb');
+        const useFallback = () => applyProjectThumbnailFallback(thumbnail);
+        image.addEventListener('error', useFallback, { once: true });
+
+        if (image.complete && image.naturalWidth === 0) useFallback();
+    });
+}
+
 function getProjectSlug(projectId, language = currentLanguage) {
     const slugs = PROJECT_SLUGS[projectId];
     if (!slugs) return '';
@@ -1925,6 +1995,16 @@ function openModal(projectCardOrId, options = {}) {
         galleryContainer.innerHTML = '';
         galleryContainer.style.display = '';
 
+        const pruneEmptyGallery = () => {
+            galleryContainer.querySelectorAll('.modal-gallery-section').forEach((section) => {
+                if (!section.querySelector('.modal-gallery-item')) section.remove();
+            });
+
+            galleryContainer.style.display = galleryContainer.querySelector('.modal-gallery-item')
+                ? ''
+                : 'none';
+        };
+
         const createMediaSection = (sectionTitle, items, renderItem) => {
             if (items.length === 0) {
                 return;
@@ -1972,9 +2052,13 @@ function openModal(projectCardOrId, options = {}) {
             link.className = 'modal-gallery-link';
 
             const img = document.createElement('img');
-            img.src = imgUrl;
             img.alt = imageTitle;
             img.loading = 'lazy';
+            img.addEventListener('error', () => {
+                figure.remove();
+                window.requestAnimationFrame(pruneEmptyGallery);
+            }, { once: true });
+            img.src = imgUrl;
 
             const caption = document.createElement('figcaption');
             caption.className = 'modal-gallery-caption';
@@ -2041,6 +2125,10 @@ function openModal(projectCardOrId, options = {}) {
             const video = document.createElement('video');
             video.setAttribute('controls', '');
             video.setAttribute('playsinline', '');
+            video.addEventListener('error', () => {
+                figure.remove();
+                window.requestAnimationFrame(pruneEmptyGallery);
+            }, { once: true });
 
             const source = document.createElement('source');
             source.src = videoUrlItem;
@@ -2072,10 +2160,21 @@ function openModal(projectCardOrId, options = {}) {
         const reportLinkText = getTranslationValue(currentLanguage, 'modal.reportLink') || 'View Full Report (PDF)';
         const codeLinkText = getTranslationValue(currentLanguage, 'modal.codeLink') || 'View Source Code';
         const emptyResourcesText = getTranslationValue(currentLanguage, 'modal.emptyResources') || 'Additional resources can be shared upon request.';
+        const normalizedPdfUrl = pdfUrl.trim();
+        const renderEmptyResources = () => {
+            linksContainer.innerHTML = `<p class="modal-resource-fallback">${escapeHtml(emptyResourcesText)}</p>`;
+        };
+        const appendEmptyResources = () => {
+            if (linksContainer.querySelector('.modal-resource-fallback')) return;
+            const fallback = document.createElement('p');
+            fallback.className = 'modal-resource-fallback';
+            fallback.textContent = emptyResourcesText;
+            linksContainer.appendChild(fallback);
+        };
 
-        if (pdfUrl) {
+        if (normalizedPdfUrl) {
             linkButtons.push(
-                `<a href="${escapeHtml(pdfUrl)}" target="_blank" rel="noopener noreferrer" class="modal-link-btn">${escapeHtml(reportLinkText)}</a>`
+                `<a href="${escapeHtml(normalizedPdfUrl)}" target="_blank" rel="noopener noreferrer" class="modal-link-btn" data-local-asset="${escapeHtml(normalizedPdfUrl)}">${escapeHtml(reportLinkText)}</a>`
             );
         }
 
@@ -2088,6 +2187,19 @@ function openModal(projectCardOrId, options = {}) {
         linksContainer.innerHTML = linkButtons.length > 0
             ? linkButtons.join('')
             : `<p>${escapeHtml(emptyResourcesText)}</p>`;
+
+        if (!normalizedPdfUrl && linkButtons.length > 0) appendEmptyResources();
+
+        const reportLink = linksContainer.querySelector('[data-local-asset]');
+        if (reportLink) {
+            checkLocalAssetAvailability(normalizedPdfUrl).then((isAvailable) => {
+                if (isAvailable || !reportLink.isConnected || activeModalProjectCard !== projectCard) return;
+
+                reportLink.remove();
+                if (!linksContainer.querySelector('.modal-link-btn')) renderEmptyResources();
+                else appendEmptyResources();
+            });
+        }
     }
 
     // Populate recommendation(s) if provided on the project card
@@ -2097,8 +2209,8 @@ function openModal(projectCardOrId, options = {}) {
     const r2 = projectCard.dataset.recommendationQuote2 || projectCard.getAttribute('data-recommendation-quote-2') || projectCard.getAttribute('data-recommendation-quote2') || '';
     const r2pdf = projectCard.dataset.recommendationPdf2 || projectCard.getAttribute('data-recommendation-pdf-2') || projectCard.getAttribute('data-recommendation-pdf2') || '';
 
-    if (r1 && r1.trim()) recs.push({ quote: r1.trim(), pdf: r1pdf || '', quoteKey: getRecommendationQuoteKeyFromPdf(r1pdf) });
-    if (r2 && r2.trim()) recs.push({ quote: r2.trim(), pdf: r2pdf || '', quoteKey: getRecommendationQuoteKeyFromPdf(r2pdf) });
+    if (r1 && r1.trim()) recs.push({ quote: r1.trim(), pdf: r1pdf.trim(), quoteKey: getRecommendationQuoteKeyFromPdf(r1pdf) });
+    if (r2 && r2.trim()) recs.push({ quote: r2.trim(), pdf: r2pdf.trim(), quoteKey: getRecommendationQuoteKeyFromPdf(r2pdf) });
 
     const recommendationSection = document.getElementById('modal-recommendation-section');
 
@@ -2113,7 +2225,7 @@ function openModal(projectCardOrId, options = {}) {
             const citeText = item.pdf ? formatRecommendationCitation(item.pdf) : '';
             const quote = escapeHtml(getRecommendationQuote(item.quoteKey, item.quote));
             const cite = escapeHtml(citeText || '');
-            const pdfLink = item.pdf ? `<p><a href="${escapeHtml(item.pdf)}" target="_blank" rel="noopener noreferrer" data-i18n="modal.recommendationLink">${escapeHtml(recommendationLinkText)}</a></p>` : '';
+            const pdfLink = item.pdf ? `<p><a href="${escapeHtml(item.pdf)}" target="_blank" rel="noopener noreferrer" data-i18n="modal.recommendationLink" data-local-asset="${escapeHtml(item.pdf)}">${escapeHtml(recommendationLinkText)}</a></p>` : '';
 
             return `
                 <blockquote class="recommendation-quote">${quote}</blockquote>
@@ -2123,6 +2235,29 @@ function openModal(projectCardOrId, options = {}) {
         }).join('<hr class="recommendation-separator"/>');
 
         recommendationSection.innerHTML = `<h3 data-i18n="modal.recommendationTitle">${escapeHtml(recommendationTitle)}</h3>${recHtml}`;
+
+        const recommendationEmptyText = getTranslationValue(currentLanguage, 'modal.emptyResources') || 'Additional resources can be shared upon request.';
+        const recommendationLinks = Array.from(recommendationSection.querySelectorAll('a[data-local-asset]'));
+        if (recommendationLinks.length === 0) {
+            const fallback = document.createElement('p');
+            fallback.className = 'modal-resource-fallback';
+            fallback.textContent = recommendationEmptyText;
+            recommendationSection.appendChild(fallback);
+        }
+        recommendationLinks.forEach((link) => {
+            checkLocalAssetAvailability(link.dataset.localAsset).then((isAvailable) => {
+                if (isAvailable || !link.isConnected || activeModalProjectCard !== projectCard) return;
+
+                link.closest('p')?.remove();
+                if (!recommendationSection.querySelector('a[data-local-asset]')
+                    && !recommendationSection.querySelector('.modal-resource-fallback')) {
+                    const fallback = document.createElement('p');
+                    fallback.className = 'modal-resource-fallback';
+                    fallback.textContent = recommendationEmptyText;
+                    recommendationSection.appendChild(fallback);
+                }
+            });
+        });
     } else {
         if (recommendationSection) recommendationSection.style.display = 'none';
     }
@@ -2310,6 +2445,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderDynamicRecommendations();
     initializeChatbotResize();
+    initializeProjectThumbnailFallbacks();
 
     if (chatbotPanel && !wasChatbotDismissed()) {
         window.setTimeout(() => updateChatbotState(true), 700);

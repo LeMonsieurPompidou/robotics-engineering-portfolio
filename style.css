@@ -768,6 +768,22 @@
     display: none;
 }
 
+.project-thumb--fallback {
+    background: linear-gradient(135deg, #eff6ff, #f8fafc);
+}
+
+.project-thumb-fallback-icon {
+    opacity: 0.72;
+}
+
+.modal-resource-fallback {
+    flex-basis: 100%;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-style: italic;
+    line-height: 1.5;
+}
+
 .chatbot-error {
     display: grid;
     gap: 0.7rem;
