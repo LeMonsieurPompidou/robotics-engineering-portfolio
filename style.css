@@ -986,3 +986,398 @@
         display: none;
     }
 }
+
+/* Dedicated project pages */
+.project-card {
+    color: inherit;
+    text-decoration: none;
+}
+
+.project-card:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--brand) 45%, transparent);
+    outline-offset: 3px;
+}
+
+.project-detail-page {
+    padding: 2rem 0 4.5rem;
+}
+
+.project-detail-back {
+    display: inline-flex;
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.project-detail-back:hover,
+.project-detail-back:focus-visible {
+    color: var(--brand-strong);
+}
+
+.project-detail-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+    gap: 3rem;
+    align-items: start;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.project-detail-hero--text-only {
+    grid-template-columns: minmax(0, 820px);
+}
+
+.project-detail-badge,
+.project-detail-section-kicker {
+    margin: 0 0 0.8rem;
+    color: var(--brand-strong);
+    font-family: var(--font-family-mono);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.project-detail-hero h1 {
+    max-width: 18ch;
+    margin: 0;
+    color: var(--text);
+    font-size: 2.6rem;
+    line-height: 1.08;
+}
+
+.project-detail-summary {
+    max-width: 68ch;
+    margin: 1.25rem 0 0;
+    color: var(--text-muted);
+    font-size: 1.08rem;
+    line-height: 1.7;
+}
+
+.project-detail-glance {
+    margin-top: 2rem;
+}
+
+.project-detail-glance h2 {
+    margin: 0 0 0.85rem;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.project-detail-glance dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.4rem;
+    margin: 0;
+}
+
+.project-detail-fact {
+    min-width: 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.project-detail-fact dt {
+    margin-bottom: 0.3rem;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.project-detail-fact dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.project-detail-primary-links,
+.project-detail-resource-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.project-detail-primary-links {
+    margin-top: 1.5rem;
+}
+
+.project-detail-btn,
+.project-detail-resource-link {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 0.95rem;
+    border: 1px solid var(--brand-strong);
+    border-radius: 4px;
+    background: var(--brand-strong);
+    color: #fff;
+    font-family: var(--font-family-mono);
+    font-size: 0.74rem;
+    font-weight: 750;
+    text-decoration: none;
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.project-detail-btn:nth-child(2),
+.project-detail-resource-link {
+    background: transparent;
+    color: var(--brand-strong);
+}
+
+.project-detail-btn:hover,
+.project-detail-btn:focus-visible,
+.project-detail-resource-link:hover,
+.project-detail-resource-link:focus-visible {
+    background: var(--brand);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.project-detail-hero-media {
+    position: sticky;
+    top: 6.5rem;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-muted);
+    aspect-ratio: 4 / 3;
+}
+
+.project-detail-hero-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.project-detail-body {
+    width: min(900px, 100%);
+    margin: 0 auto;
+}
+
+.project-detail-section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.project-detail-section > p:not(.project-detail-section-kicker),
+.project-detail-section > div > p {
+    margin: 0 0 1rem;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.78;
+}
+
+.project-detail-section > p:last-child {
+    margin-bottom: 0;
+}
+
+.project-detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.project-detail-tags span {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-muted);
+    color: var(--text);
+    font-family: var(--font-family-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.project-detail-media-group + .project-detail-media-group {
+    margin-top: 2.25rem;
+}
+
+.project-detail-media-group h2 {
+    margin: 0 0 1rem;
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.project-detail-media-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    min-width: 0;
+}
+
+.project-detail-media-item {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-muted);
+}
+
+.project-detail-media-item a {
+    display: block;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+}
+
+.project-detail-media-item img,
+.project-detail-media-item iframe,
+.project-detail-media-item video {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: #0f172a;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+}
+
+.project-detail-media-item figcaption {
+    padding: 0.7rem 0.8rem;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: 0.68rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.project-detail-recommendations {
+    display: grid;
+    gap: 1rem;
+}
+
+.project-detail-recommendation {
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-muted);
+}
+
+.project-detail-recommendation blockquote {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.project-detail-recommendation cite {
+    display: block;
+    margin-top: 0.8rem;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: 0.72rem;
+    font-style: normal;
+}
+
+.project-detail-recommendation a {
+    display: inline-block;
+    margin-top: 0.8rem;
+    color: var(--brand-strong);
+    font-family: var(--font-family-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.project-detail-empty-resources {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.project-detail-pagination {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    padding-top: 2rem;
+}
+
+.project-detail-pagination a {
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.project-detail-pagination a:last-child {
+    text-align: right;
+}
+
+.project-detail-pagination a:hover,
+.project-detail-pagination a:focus-visible {
+    color: var(--brand-strong);
+}
+
+@media (max-width: 900px) {
+    .project-detail-hero {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .project-detail-hero-media {
+        position: relative;
+        top: auto;
+        width: 100%;
+        max-width: 720px;
+    }
+}
+
+@media (max-width: 640px) {
+    .project-detail-page {
+        padding-top: 1.25rem;
+        overflow-x: clip;
+    }
+
+    .project-detail-hero h1 {
+        max-width: none;
+        font-size: 2rem;
+        overflow-wrap: anywhere;
+    }
+
+    .project-detail-summary {
+        font-size: 1rem;
+    }
+
+    .project-detail-glance dl,
+    .project-detail-media-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .project-detail-primary-links,
+    .project-detail-resource-list {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .project-detail-btn,
+    .project-detail-resource-link {
+        width: 100%;
+    }
+
+    .project-detail-section {
+        padding: 2.25rem 0;
+    }
+
+    .project-detail-pagination {
+        grid-template-columns: 1fr;
+    }
+
+    .project-detail-pagination span {
+        display: none;
+    }
+
+    .project-detail-pagination a,
+    .project-detail-pagination a:last-child {
+        text-align: left;
+    }
+}

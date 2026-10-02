@@ -29,10 +29,14 @@ const projectSearchInput = document.getElementById('project-search-input');
 const projectSearchClear = document.getElementById('project-search-clear');
 const projectSearchStatus = document.getElementById('project-search-status');
 const projectSearchEmpty = document.getElementById('project-search-empty');
+const projectsOverview = document.getElementById('projects');
+const projectDetailPage = document.getElementById('project-detail-page');
+const projectDetailContent = document.getElementById('project-detail-content');
 const langButtons = document.querySelectorAll('.lang-btn');
 let currentLanguage = 'en';
 const projectCardOriginals = new Map();
 let activeModalProjectCard = null;
+let activeDetailProjectCard = null;
 let projectRouteOpenTimer = null;
 const CHATBOT_DISMISSED_KEY = 'portfolioChatbotDismissed';
 
@@ -51,6 +55,13 @@ const PROJECT_SLUGS = Object.freeze({
     'muscu-app': { en: 'fitness-tracker', fr: 'suivi-musculation' },
     'econometrics-r': { en: 'econometrics', fr: 'econometrie' },
     poppins: { en: 'sharing-boxes', fr: 'boites-partage' }
+});
+
+const PROJECT_SLUG_ALIASES = Object.freeze({
+    autonomyo: ['autonomyo'],
+    thesis: ['thesis'],
+    legov: ['virtual-rehabilitation'],
+    'rocket-mpc': ['rocket-mpc']
 });
 
 // =============================================
@@ -256,6 +267,30 @@ const translations = {
                 cv: 'Download CV',
                 projects: 'Review Projects'
             }
+        },
+        projectDetail: {
+            back: 'All Projects',
+            atGlance: 'At a glance',
+            projectType: 'Project type',
+            duration: 'Duration',
+            collaboration: 'Collaboration',
+            coreMethods: 'Core methods',
+            contribution: 'My Contribution',
+            approach: 'Project / Technical Approach',
+            tech: 'Tech Stack / Methods',
+            media: 'Media',
+            videos: 'Videos',
+            pictures: 'Pictures',
+            recommendation: 'Recommendation',
+            resources: 'Resources',
+            report: 'View Full Report (PDF)',
+            github: 'View Source Code',
+            recommendationLink: 'Open full recommendation (PDF)',
+            previous: 'Previous Project',
+            all: 'All Projects',
+            next: 'Next Project',
+            videoLabel: 'Project video',
+            emptyResources: 'Additional resources can be shared upon request.'
         },
         modal: {
             collaborationTitle: 'Collaboration',
@@ -515,6 +550,30 @@ const translations = {
                 projects: 'Voir les projets'
             }
         },
+        projectDetail: {
+            back: 'Tous les projets',
+            atGlance: 'En bref',
+            projectType: 'Type de projet',
+            duration: 'Durée',
+            collaboration: 'Collaboration',
+            coreMethods: 'Méthodes principales',
+            contribution: 'Ma contribution',
+            approach: 'Projet / Approche technique',
+            tech: 'Technologies / Méthodes',
+            media: 'Médias',
+            videos: 'Vidéos',
+            pictures: 'Images',
+            recommendation: 'Recommandation',
+            resources: 'Ressources',
+            report: 'Voir le rapport complet (PDF)',
+            github: 'Voir le code source',
+            recommendationLink: 'Ouvrir la recommandation complète (PDF)',
+            previous: 'Projet précédent',
+            all: 'Tous les projets',
+            next: 'Projet suivant',
+            videoLabel: 'Vidéo du projet',
+            emptyResources: 'Des ressources complémentaires peuvent être partagées sur demande.'
+        },
         modal: {
             collaborationTitle: 'Collaboration',
             overviewTitle: 'Aperçu du projet',
@@ -675,6 +734,8 @@ function applyProjectCardTranslations(language) {
         if (descriptionEl) descriptionEl.textContent = translation.description || original.description;
         if (badgeEl) badgeEl.textContent = translation.badge || original.badge;
         if (actionEl) actionEl.textContent = actionTranslation || original.action;
+        const localizedSlug = getProjectSlug(projectId, language);
+        if (localizedSlug && card.matches('a')) card.href = `/projects/${localizedSlug}`;
 
         tagEls.forEach((tagEl, index) => {
             tagEl.textContent = Array.isArray(translation.tags) && translation.tags[index]
@@ -711,7 +772,9 @@ function applyLanguage(language) {
 
     currentLanguage = language;
     document.documentElement.lang = language;
-    document.title = translations[language].meta.title;
+    document.title = projectsOverview
+        ? `${getTranslationValue(language, 'projects.title') || 'Projects'} | Sam Rahnemayan`
+        : translations[language].meta.title;
 
     document.querySelectorAll('[data-i18n]').forEach((element) => {
         const translation = getTranslationValue(language, element.dataset.i18n);
@@ -746,6 +809,11 @@ function applyLanguage(language) {
 
     if (activeModalProjectCard && projectModal && projectModal.classList.contains('active')) {
         openModal(activeModalProjectCard, { historyMode: 'replace' });
+    }
+
+    if (activeDetailProjectCard) {
+        renderProjectDetail(activeDetailProjectCard);
+        updateProjectUrl(activeDetailProjectCard.dataset.projectId, 'replace');
     }
 }
 
@@ -1884,6 +1952,12 @@ function resolveProjectSlug(rawSlug) {
         }
     }
 
+    for (const [projectId, aliases] of Object.entries(PROJECT_SLUG_ALIASES)) {
+        if (aliases.includes(slug)) {
+            return { projectId, language: currentLanguage, slug };
+        }
+    }
+
     return null;
 }
 
@@ -1906,6 +1980,319 @@ function updateProjectUrl(projectId, historyMode = 'push') {
 
     const method = historyMode === 'replace' ? 'replaceState' : 'pushState';
     window.history[method](null, '', targetPath);
+}
+
+function getProjectThumbnailUrl(card) {
+    const thumbnail = card.querySelector('.project-thumb--image');
+    const backgroundImage = thumbnail?.style.backgroundImage || '';
+    const match = backgroundImage.match(/^url\((['"]?)(.*)\1\)$/i);
+    return match?.[2]?.trim() || '';
+}
+
+function getReadableAssetName(assetUrl, fallback = '') {
+    const filename = String(assetUrl || '').split('/').pop()?.split('?')[0] || '';
+    const label = filename
+        .replace(/\.[^.]+$/, '')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return label || fallback;
+}
+
+function getYouTubeEmbedUrl(videoUrl) {
+    if (!/(?:youtube\.com|youtu\.be)/i.test(videoUrl)) return '';
+
+    try {
+        const url = new URL(videoUrl);
+        const videoId = url.hostname.includes('youtu.be')
+            ? url.pathname.split('/').filter(Boolean)[0]
+            : url.searchParams.get('v') || url.pathname.split('/').filter(Boolean).pop();
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+    } catch (error) {
+        return '';
+    }
+}
+
+function getProjectDetailModel(card) {
+    const projectId = card.dataset.projectId;
+    const original = getProjectCardOriginal(card);
+    const translation = getTranslationValue(currentLanguage, `projects.cards.${projectId}`) || {};
+    const images = String(card.dataset.images || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    const videos = String(card.dataset.video || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    const tags = Array.isArray(translation.tags) && translation.tags.length > 0
+        ? translation.tags
+        : original.tags.filter(Boolean);
+    const title = currentLanguage === 'fr' && translation.title
+        ? translation.title
+        : card.dataset.projectTitle || original.title;
+    const description = translation.description || original.description;
+    const collaboration = translation.collaboration || card.dataset.collaboration || '';
+    const report = getProjectReport(
+        projectId,
+        projectData[projectId]?.report || card.dataset.report || ''
+    );
+    const recommendations = [
+        {
+            quote: card.dataset.recommendationQuote || '',
+            pdf: card.dataset.recommendationPdf || ''
+        },
+        {
+            quote: card.dataset.recommendationQuote2 || card.getAttribute('data-recommendation-quote-2') || '',
+            pdf: card.dataset.recommendationPdf2 || card.getAttribute('data-recommendation-pdf-2') || ''
+        }
+    ]
+        .filter((item) => item.quote.trim() || item.pdf.trim())
+        .map((item) => ({
+            ...item,
+            quote: getRecommendationQuote(getRecommendationQuoteKeyFromPdf(item.pdf), item.quote)
+        }));
+
+    return {
+        projectId,
+        title,
+        description,
+        badge: translation.badge || original.badge,
+        date: translateProjectDateText(currentLanguage, original.date),
+        collaboration,
+        report,
+        tags,
+        images,
+        videos,
+        heroImage: getProjectThumbnailUrl(card) || images[0] || '',
+        pdf: String(card.dataset.pdf || '').trim(),
+        github: String(card.dataset.github || '').trim(),
+        recommendations
+    };
+}
+
+function renderProjectDetail(card) {
+    if (!projectDetailPage || !projectDetailContent || !projectsOverview || !card) return false;
+
+    const project = getProjectDetailModel(card);
+    const label = (key, fallback) => getTranslationValue(currentLanguage, `projectDetail.${key}`) || fallback;
+    const reportParagraphs = String(project.report || '')
+        .split(/\n\s*\n/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
+    const contributionPattern = currentLanguage === 'fr'
+        ? /(?:^|\s)(?:Je\s|J'|Mon\s|Ma\s|Mes\s)/i
+        : /(?:^|\s)(?:I\s|My\s)/;
+    const contributionIndex = reportParagraphs.findIndex((paragraph) => contributionPattern.test(paragraph));
+    const contribution = contributionIndex >= 0 ? reportParagraphs[contributionIndex] : '';
+    const approachParagraphs = reportParagraphs.filter((_, index) => index !== contributionIndex);
+    const collaborationSummary = project.collaboration
+        ? project.collaboration.split(/\.\s+/)[0].trim().replace(/\.$/, '')
+        : '';
+    const cardOrder = Array.from(projectCards);
+    const cardIndex = cardOrder.indexOf(card);
+    const previousCard = cardOrder[cardIndex - 1] || null;
+    const nextCard = cardOrder[cardIndex + 1] || null;
+
+    const renderFact = (name, value) => value ? `
+        <div class="project-detail-fact">
+            <dt>${escapeHtml(name)}</dt>
+            <dd>${escapeHtml(value)}</dd>
+        </div>` : '';
+
+    const renderResourceLink = (type, className = 'project-detail-btn') => {
+        if (type === 'pdf' && project.pdf) {
+            return `<a class="${className}" href="${escapeHtml(project.pdf)}" target="_blank" rel="noopener noreferrer" data-local-asset="${escapeHtml(project.pdf)}">${escapeHtml(label('report', 'View Full Report (PDF)'))}</a>`;
+        }
+        if (type === 'github' && project.github) {
+            return `<a class="${className}" href="${escapeHtml(project.github)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label('github', 'View Source Code'))}</a>`;
+        }
+        return '';
+    };
+
+    const renderVideo = (videoUrl, index) => {
+        const videoName = `${label('videoLabel', 'Project video')} ${index + 1}`;
+        const embedUrl = getYouTubeEmbedUrl(videoUrl);
+        if (embedUrl) {
+            return `
+                <figure class="project-detail-media-item project-detail-media-item--video">
+                    <iframe src="${escapeHtml(embedUrl)}" title="${escapeHtml(videoName)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    <figcaption>${escapeHtml(videoName)}</figcaption>
+                </figure>`;
+        }
+        return `
+            <figure class="project-detail-media-item project-detail-media-item--video">
+                <video controls playsinline preload="metadata"><source src="${escapeHtml(videoUrl)}" type="video/mp4"></video>
+                <figcaption>${escapeHtml(getReadableAssetName(videoUrl, videoName))}</figcaption>
+            </figure>`;
+    };
+
+    const renderImage = (imageUrl) => `
+        <figure class="project-detail-media-item">
+            <a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer">
+                <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(getReadableAssetName(imageUrl, project.title))}" loading="lazy">
+            </a>
+            <figcaption>${escapeHtml(getReadableAssetName(imageUrl, project.title))}</figcaption>
+        </figure>`;
+
+    const recommendationsHtml = project.recommendations.map((recommendation) => {
+        const citation = formatRecommendationCitation(recommendation.pdf);
+        const pdfLink = recommendation.pdf
+            ? `<a href="${escapeHtml(recommendation.pdf)}" target="_blank" rel="noopener noreferrer" data-local-asset="${escapeHtml(recommendation.pdf)}">${escapeHtml(label('recommendationLink', 'Open full recommendation (PDF)'))}</a>`
+            : '';
+        return `
+            <article class="project-detail-recommendation">
+                ${recommendation.quote ? `<blockquote>${escapeHtml(recommendation.quote)}</blockquote>` : ''}
+                ${citation ? `<cite>${escapeHtml(citation)}</cite>` : ''}
+                ${pdfLink}
+            </article>`;
+    }).join('');
+
+    const primaryLinks = [renderResourceLink('pdf'), renderResourceLink('github')].filter(Boolean).join('');
+    const bottomResources = [
+        renderResourceLink('pdf', 'project-detail-resource-link'),
+        renderResourceLink('github', 'project-detail-resource-link')
+    ].filter(Boolean).join('');
+    const heroClass = project.heroImage ? 'project-detail-hero' : 'project-detail-hero project-detail-hero--text-only';
+
+    projectDetailContent.innerHTML = `
+        <a class="project-detail-back" href="/projects">&larr; ${escapeHtml(label('back', 'All Projects'))}</a>
+
+        <article class="project-detail-article">
+            <header class="${heroClass}">
+                <div class="project-detail-hero-copy">
+                    ${project.badge ? `<p class="project-detail-badge">${escapeHtml(project.badge)}</p>` : ''}
+                    <h1>${escapeHtml(project.title)}</h1>
+                    <p class="project-detail-summary">${escapeHtml(project.description)}</p>
+
+                    <section class="project-detail-glance" aria-labelledby="project-glance-title">
+                        <h2 id="project-glance-title">${escapeHtml(label('atGlance', 'At a glance'))}</h2>
+                        <dl>
+                            ${renderFact(label('projectType', 'Project type'), project.badge)}
+                            ${renderFact(label('duration', 'Duration'), project.date)}
+                            ${renderFact(label('collaboration', 'Collaboration'), collaborationSummary)}
+                            ${renderFact(label('coreMethods', 'Core methods'), project.tags.slice(0, 4).join(' · '))}
+                        </dl>
+                    </section>
+
+                    ${primaryLinks ? `<div class="project-detail-primary-links">${primaryLinks}</div>` : ''}
+                </div>
+
+                ${project.heroImage ? `
+                    <figure class="project-detail-hero-media">
+                        <img src="${escapeHtml(project.heroImage)}" alt="${escapeHtml(project.title)}" loading="eager">
+                    </figure>` : ''}
+            </header>
+
+            <div class="project-detail-body">
+                ${contribution ? `
+                    <section class="project-detail-section">
+                        <p class="project-detail-section-kicker">${escapeHtml(label('contribution', 'My Contribution'))}</p>
+                        <p>${escapeHtml(contribution)}</p>
+                    </section>` : ''}
+
+                ${approachParagraphs.length > 0 ? `
+                    <section class="project-detail-section">
+                        <p class="project-detail-section-kicker">${escapeHtml(label('approach', 'Project / Technical Approach'))}</p>
+                        ${approachParagraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('')}
+                    </section>` : ''}
+
+                ${project.tags.length > 0 ? `
+                    <section class="project-detail-section">
+                        <p class="project-detail-section-kicker">${escapeHtml(label('tech', 'Tech Stack / Methods'))}</p>
+                        <div class="project-detail-tags">${project.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+                    </section>` : ''}
+
+                ${project.collaboration ? `
+                    <section class="project-detail-section">
+                        <p class="project-detail-section-kicker">${escapeHtml(label('collaboration', 'Collaboration'))}</p>
+                        <p>${escapeHtml(project.collaboration)}</p>
+                    </section>` : ''}
+
+                ${(project.videos.length > 0 || project.images.length > 0) ? `
+                    <section class="project-detail-section project-detail-media-section">
+                        <p class="project-detail-section-kicker">${escapeHtml(label('media', 'Media'))}</p>
+                        ${project.videos.length > 0 ? `
+                            <div class="project-detail-media-group">
+                                <h2>${escapeHtml(label('videos', 'Videos'))}</h2>
+                                <div class="project-detail-media-grid">${project.videos.map(renderVideo).join('')}</div>
+                            </div>` : ''}
+                        ${project.images.length > 0 ? `
+                            <div class="project-detail-media-group">
+                                <h2>${escapeHtml(label('pictures', 'Pictures'))}</h2>
+                                <div class="project-detail-media-grid">${project.images.map(renderImage).join('')}</div>
+                            </div>` : ''}
+                    </section>` : ''}
+
+                ${recommendationsHtml ? `
+                    <section class="project-detail-section">
+                        <p class="project-detail-section-kicker">${escapeHtml(label('recommendation', 'Recommendation'))}</p>
+                        <div class="project-detail-recommendations">${recommendationsHtml}</div>
+                    </section>` : ''}
+
+                <section class="project-detail-section project-detail-resources">
+                    <p class="project-detail-section-kicker">${escapeHtml(label('resources', 'Resources'))}</p>
+                    <div class="project-detail-resource-list">${bottomResources || `<p class="project-detail-empty-resources">${escapeHtml(label('emptyResources', 'Additional resources can be shared upon request.'))}</p>`}</div>
+                </section>
+            </div>
+
+            <nav class="project-detail-pagination" aria-label="Project navigation">
+                ${previousCard ? `<a href="/projects/${escapeHtml(getProjectSlug(previousCard.dataset.projectId))}">&larr; ${escapeHtml(label('previous', 'Previous Project'))}</a>` : '<span></span>'}
+                <a href="/projects">${escapeHtml(label('all', 'All Projects'))}</a>
+                ${nextCard ? `<a href="/projects/${escapeHtml(getProjectSlug(nextCard.dataset.projectId))}">${escapeHtml(label('next', 'Next Project'))} &rarr;</a>` : '<span></span>'}
+            </nav>
+        </article>`;
+
+    projectsOverview.hidden = true;
+    projectDetailPage.hidden = false;
+    activeDetailProjectCard = card;
+    document.body.classList.add('project-detail-active');
+    document.title = `${project.title} | Sam Rahnemayan`;
+
+    const heroImage = projectDetailContent.querySelector('.project-detail-hero-media img');
+    heroImage?.addEventListener('error', () => {
+        const media = heroImage.closest('.project-detail-hero-media');
+        const hero = heroImage.closest('.project-detail-hero');
+        media?.remove();
+        hero?.classList.add('project-detail-hero--text-only');
+    }, { once: true });
+
+    projectDetailContent.querySelectorAll('.project-detail-media-item img').forEach((image) => {
+        image.addEventListener('error', () => {
+            const item = image.closest('.project-detail-media-item');
+            const grid = image.closest('.project-detail-media-grid');
+            item?.remove();
+            if (grid && !grid.querySelector('.project-detail-media-item')) grid.closest('.project-detail-media-group')?.remove();
+        }, { once: true });
+    });
+
+    projectDetailContent.querySelectorAll('.project-detail-media-item video').forEach((video) => {
+        video.addEventListener('error', () => video.closest('.project-detail-media-item')?.remove(), { once: true });
+    });
+
+    projectDetailContent.querySelectorAll('[data-local-asset]').forEach((link) => {
+        checkLocalAssetAvailability(link.dataset.localAsset).then((isAvailable) => {
+            if (isAvailable || !link.isConnected || activeDetailProjectCard !== card) return;
+            link.remove();
+            const resourceList = projectDetailContent.querySelector('.project-detail-resource-list');
+            if (resourceList && !resourceList.querySelector('a') && !resourceList.querySelector('.project-detail-empty-resources')) {
+                resourceList.innerHTML = `<p class="project-detail-empty-resources">${escapeHtml(label('emptyResources', 'Additional resources can be shared upon request.'))}</p>`;
+            }
+        });
+    });
+
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    return true;
+}
+
+function showProjectsOverview() {
+    if (!projectsOverview || !projectDetailPage) return;
+    activeDetailProjectCard = null;
+    projectsOverview.hidden = false;
+    projectDetailPage.hidden = true;
+    projectDetailContent.innerHTML = '';
+    document.body.classList.remove('project-detail-active');
+    document.title = `${getTranslationValue(currentLanguage, 'projects.title') || 'Projects'} | Sam Rahnemayan`;
 }
 
 function openModal(projectCardOrId, options = {}) {
@@ -2295,47 +2682,18 @@ function openProjectRoute(route, options = {}) {
     if (!card) return false;
 
     if (route.language && currentLanguage !== route.language) {
-        if (projectModal && projectModal.classList.contains('active')) {
-            closeModal({ syncUrl: false });
-        }
         applyLanguage(route.language);
     }
 
-    const { scroll = false, smooth = true } = options;
-    const showModal = () => openModal(card, { syncUrl: false });
-
-    if (projectRouteOpenTimer) {
-        window.clearTimeout(projectRouteOpenTimer);
-        projectRouteOpenTimer = null;
-    }
-
-    if (scroll) {
-        card.scrollIntoView({
-            behavior: smooth ? 'smooth' : 'auto',
-            block: 'center'
-        });
-        projectRouteOpenTimer = window.setTimeout(() => {
-            projectRouteOpenTimer = null;
-            showModal();
-        }, smooth ? 320 : 0);
-    } else {
-        showModal();
-    }
-
-    return true;
+    return renderProjectDetail(card, options);
 }
 
-function syncProjectModalWithLocation(options = {}) {
-    if (!projectModal) return;
-
+function syncProjectViewWithLocation(options = {}) {
     const route = getProjectRouteFromLocation();
     if (route) {
         openProjectRoute(route, options);
-    } else if (projectModal.classList.contains('active')) {
-        closeModal({ syncUrl: false });
-    } else if (projectRouteOpenTimer) {
-        window.clearTimeout(projectRouteOpenTimer);
-        projectRouteOpenTimer = null;
+    } else {
+        showProjectsOverview();
     }
 }
 
@@ -2346,7 +2704,7 @@ if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
 if (modalClose) modalClose.addEventListener('click', closeModal);
 
 window.addEventListener('popstate', () => {
-    syncProjectModalWithLocation({ scroll: false });
+    syncProjectViewWithLocation();
 });
 
 // Close modal on Escape key
@@ -2354,21 +2712,6 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && projectModal && projectModal.classList.contains('active')) {
         closeModal();
     }
-});
-
-// Add click listeners to project cards
-projectCards.forEach(card => {
-    card.addEventListener('click', () => {
-        openModal(card);
-    });
-
-    // Keyboard support for the card's button-like interaction.
-    card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            openModal(card);
-        }
-    });
 });
 
 // =============================================
@@ -2447,7 +2790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeChatbotResize();
     initializeProjectThumbnailFallbacks();
 
-    if (chatbotPanel && !wasChatbotDismissed()) {
+    if (chatbotPanel && !wasChatbotDismissed() && !getProjectRouteFromLocation()) {
         window.setTimeout(() => updateChatbotState(true), 700);
     }
 
@@ -2464,10 +2807,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const projectRoute = getProjectRouteFromLocation();
     const openedDeepLink = projectRoute
-        ? openProjectRoute(projectRoute, {
-            scroll: true,
-            smooth: !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        })
+        ? openProjectRoute(projectRoute)
         : false;
 
     const hash = window.location.hash.substring(1);
