@@ -764,6 +764,10 @@
     display: none;
 }
 
+.chatbot-corner-resize-handle {
+    display: none;
+}
+
 .chatbot-error {
     display: grid;
     gap: 0.7rem;
@@ -872,13 +876,16 @@
     }
 
     .chatbot-panel {
+        right: 0;
         bottom: 62px;
-        width: min(380px, calc(100vw - 2rem)) !important;
+        width: calc(100vw - 2rem);
+        min-width: 260px;
+        max-width: 95vw;
         height: min(60vh, 560px);
-        min-height: min(260px, 85vh);
-        max-height: 85vh;
+        min-height: 260px;
+        max-height: 90vh;
         overflow: hidden;
-        transition: height 0.22s ease;
+        transition: width 0.22s ease, height 0.22s ease;
     }
 
     .chatbot-panel.active {
@@ -903,6 +910,38 @@
         cursor: grabbing;
     }
 
+    .chatbot-corner-resize-handle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 5;
+        display: block;
+        width: 36px;
+        height: 36px;
+        cursor: nwse-resize;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .chatbot-corner-resize-handle::before {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 15px;
+        height: 15px;
+        background: repeating-linear-gradient(
+            135deg,
+            transparent 0 3px,
+            rgba(15, 23, 42, 0.28) 3px 5px
+        );
+        clip-path: polygon(0 0, 100% 0, 0 100%);
+        content: '';
+    }
+
+    .chatbot-corner-resize-handle.is-dragging {
+        cursor: grabbing;
+    }
+
     .chatbot-drag-handle .drag-bar {
         width: 36px;
         height: 4px;
@@ -910,7 +949,8 @@
         background: rgba(15, 23, 42, 0.2);
     }
 
-    .chatbot-panel.is-touch-resizing {
+    .chatbot-panel.is-touch-resizing,
+    .chatbot-panel.is-corner-resizing {
         transition: none;
         user-select: none;
     }

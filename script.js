@@ -23,6 +23,7 @@ const chatbotInput = document.getElementById('chatbot-input');
 const chatbotMessages = document.getElementById('chatbot-messages');
 const chatbotSendButton = chatbotForm ? chatbotForm.querySelector('.chatbot-send') : null;
 const chatbotResizeHandle = chatbotPanel ? chatbotPanel.querySelector('.chatbot-resize-handle') : null;
+const chatbotCornerResizeHandle = chatbotPanel ? chatbotPanel.querySelector('.chatbot-corner-resize-handle') : null;
 const chatbotDragHandle = chatbotPanel ? chatbotPanel.querySelector('.chatbot-drag-handle') : null;
 const projectSearchInput = document.getElementById('project-search-input');
 const projectSearchClear = document.getElementById('project-search-clear');
@@ -1083,6 +1084,56 @@ function initializeChatbotResize() {
         });
     }
 
+    if (chatbotCornerResizeHandle) {
+        let cornerStartX = 0;
+        let cornerStartY = 0;
+        let cornerStartWidth = 0;
+        let cornerStartHeight = 0;
+
+        const handleCornerTouchStart = (event) => {
+            if (!window.matchMedia('(max-width: 768px)').matches || event.touches.length !== 1) return;
+
+            event.preventDefault();
+            const touch = event.touches[0];
+            cornerStartX = touch.clientX;
+            cornerStartY = touch.clientY;
+            cornerStartWidth = chatbotPanel.getBoundingClientRect().width;
+            cornerStartHeight = chatbotPanel.getBoundingClientRect().height;
+            chatbotPanel.style.transition = 'none';
+            chatbotPanel.classList.add('is-corner-resizing');
+            chatbotCornerResizeHandle.classList.add('is-dragging');
+        };
+
+        const handleCornerTouchMove = (event) => {
+            if (!chatbotPanel.classList.contains('is-corner-resizing') || event.touches.length !== 1) return;
+
+            event.preventDefault();
+            const touch = event.touches[0];
+            const maxWidth = window.innerWidth * 0.95;
+            const maxHeight = window.innerHeight * 0.9;
+            const nextWidth = Math.min(maxWidth, Math.max(260, cornerStartWidth + cornerStartX - touch.clientX));
+            const nextHeight = Math.min(maxHeight, Math.max(260, cornerStartHeight + cornerStartY - touch.clientY));
+
+            chatbotPanel.style.width = `${nextWidth}px`;
+            chatbotPanel.style.height = `${nextHeight}px`;
+        };
+
+        const handleCornerTouchEnd = () => {
+            if (!chatbotPanel.classList.contains('is-corner-resizing')) return;
+
+            chatbotPanel.classList.remove('is-corner-resizing');
+            chatbotCornerResizeHandle.classList.remove('is-dragging');
+            window.requestAnimationFrame(() => {
+                chatbotPanel.style.transition = '';
+            });
+        };
+
+        chatbotCornerResizeHandle.addEventListener('touchstart', handleCornerTouchStart, { passive: false });
+        chatbotCornerResizeHandle.addEventListener('touchmove', handleCornerTouchMove, { passive: false });
+        chatbotCornerResizeHandle.addEventListener('touchend', handleCornerTouchEnd);
+        chatbotCornerResizeHandle.addEventListener('touchcancel', handleCornerTouchEnd);
+    }
+
     if (!chatbotDragHandle) return;
 
     let startTouchY = 0;
@@ -1091,7 +1142,7 @@ function initializeChatbotResize() {
 
     const getHeightBounds = () => {
         const viewportHeight = window.visualViewport?.height || window.innerHeight;
-        const maxHeight = Math.round(viewportHeight * 0.85);
+        const maxHeight = Math.round(viewportHeight * 0.9);
         const minHeight = Math.min(maxHeight, Math.max(260, Math.round(viewportHeight * 0.35)));
         const defaultHeight = Math.min(maxHeight, Math.max(minHeight, Math.round(viewportHeight * 0.6)));
 
