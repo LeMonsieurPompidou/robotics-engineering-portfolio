@@ -760,6 +760,10 @@
     bottom: 66px;
 }
 
+.chatbot-drag-handle {
+    display: none;
+}
+
 .chatbot-error {
     display: grid;
     gap: 0.7rem;
@@ -869,7 +873,57 @@
 
     .chatbot-panel {
         bottom: 62px;
-        max-height: min(78vh, 620px);
+        width: min(380px, calc(100vw - 2rem)) !important;
+        height: min(60vh, 560px);
+        min-height: min(260px, 85vh);
+        max-height: 85vh;
+        overflow: hidden;
+        transition: height 0.22s ease;
+    }
+
+    .chatbot-panel.active {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chatbot-drag-handle {
+        display: flex;
+        width: 100%;
+        min-height: 26px;
+        flex: 0 0 26px;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .chatbot-drag-handle.is-dragging {
+        cursor: grabbing;
+    }
+
+    .chatbot-drag-handle .drag-bar {
+        width: 36px;
+        height: 4px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.2);
+    }
+
+    .chatbot-panel.is-touch-resizing {
+        transition: none;
+        user-select: none;
+    }
+
+    .chatbot-messages {
+        min-height: 0;
+        max-height: none;
+        flex: 1 1 auto;
+    }
+
+    .chatbot-header,
+    .chatbot-form {
+        flex: 0 0 auto;
     }
 
     .chatbot-resize-handle {

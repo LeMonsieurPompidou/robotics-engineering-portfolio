@@ -23,6 +23,7 @@ const chatbotInput = document.getElementById('chatbot-input');
 const chatbotMessages = document.getElementById('chatbot-messages');
 const chatbotSendButton = chatbotForm ? chatbotForm.querySelector('.chatbot-send') : null;
 const chatbotResizeHandle = chatbotPanel ? chatbotPanel.querySelector('.chatbot-resize-handle') : null;
+const chatbotDragHandle = chatbotPanel ? chatbotPanel.querySelector('.chatbot-drag-handle') : null;
 const projectSearchInput = document.getElementById('project-search-input');
 const projectSearchClear = document.getElementById('project-search-clear');
 const projectSearchStatus = document.getElementById('project-search-status');
@@ -1045,40 +1046,102 @@ function wasChatbotDismissed() {
 }
 
 function initializeChatbotResize() {
-    if (!chatbotPanel || !chatbotResizeHandle) return;
+    if (!chatbotPanel) return;
 
-    chatbotResizeHandle.addEventListener('pointerdown', (event) => {
-        if (!window.matchMedia('(min-width: 769px)').matches) return;
+    if (chatbotResizeHandle) {
+        chatbotResizeHandle.addEventListener('pointerdown', (event) => {
+            if (!window.matchMedia('(min-width: 769px)').matches) return;
+
+            event.preventDefault();
+            const startX = event.clientX;
+            const startY = event.clientY;
+            const startWidth = chatbotPanel.offsetWidth;
+            const startHeight = chatbotPanel.offsetHeight;
+            chatbotResizeHandle.setPointerCapture(event.pointerId);
+            chatbotPanel.classList.add('is-resizing');
+
+            const resizePanel = (moveEvent) => {
+                const maxWidth = window.innerWidth * 0.9;
+                const maxHeight = window.innerHeight * 0.85;
+                const nextWidth = Math.min(maxWidth, Math.max(320, startWidth + startX - moveEvent.clientX));
+                const nextHeight = Math.min(maxHeight, Math.max(400, startHeight + startY - moveEvent.clientY));
+
+                chatbotPanel.style.width = `${nextWidth}px`;
+                chatbotPanel.style.height = `${nextHeight}px`;
+            };
+
+            const stopResizing = () => {
+                chatbotPanel.classList.remove('is-resizing');
+                chatbotResizeHandle.removeEventListener('pointermove', resizePanel);
+                chatbotResizeHandle.removeEventListener('pointerup', stopResizing);
+                chatbotResizeHandle.removeEventListener('pointercancel', stopResizing);
+            };
+
+            chatbotResizeHandle.addEventListener('pointermove', resizePanel);
+            chatbotResizeHandle.addEventListener('pointerup', stopResizing);
+            chatbotResizeHandle.addEventListener('pointercancel', stopResizing);
+        });
+    }
+
+    if (!chatbotDragHandle) return;
+
+    let startTouchY = 0;
+    let startPanelHeight = 0;
+    let currentPanelHeight = 0;
+
+    const getHeightBounds = () => {
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const maxHeight = Math.round(viewportHeight * 0.85);
+        const minHeight = Math.min(maxHeight, Math.max(260, Math.round(viewportHeight * 0.35)));
+        const defaultHeight = Math.min(maxHeight, Math.max(minHeight, Math.round(viewportHeight * 0.6)));
+
+        return { minHeight, defaultHeight, maxHeight };
+    };
+
+    const handleTouchStart = (event) => {
+        if (!window.matchMedia('(max-width: 768px)').matches || event.touches.length !== 1) return;
 
         event.preventDefault();
-        const startX = event.clientX;
-        const startY = event.clientY;
-        const startWidth = chatbotPanel.offsetWidth;
-        const startHeight = chatbotPanel.offsetHeight;
-        chatbotResizeHandle.setPointerCapture(event.pointerId);
-        chatbotPanel.classList.add('is-resizing');
+        startTouchY = event.touches[0].clientY;
+        startPanelHeight = chatbotPanel.getBoundingClientRect().height;
+        currentPanelHeight = startPanelHeight;
+        chatbotPanel.classList.add('is-touch-resizing');
+        chatbotDragHandle.classList.add('is-dragging');
+    };
 
-        const resizePanel = (moveEvent) => {
-            const maxWidth = window.innerWidth * 0.9;
-            const maxHeight = window.innerHeight * 0.85;
-            const nextWidth = Math.min(maxWidth, Math.max(320, startWidth + startX - moveEvent.clientX));
-            const nextHeight = Math.min(maxHeight, Math.max(400, startHeight + startY - moveEvent.clientY));
+    const handleTouchMove = (event) => {
+        if (!chatbotPanel.classList.contains('is-touch-resizing') || event.touches.length !== 1) return;
 
-            chatbotPanel.style.width = `${nextWidth}px`;
-            chatbotPanel.style.height = `${nextHeight}px`;
-        };
+        event.preventDefault();
+        const { minHeight, maxHeight } = getHeightBounds();
+        const deltaY = startTouchY - event.touches[0].clientY;
+        currentPanelHeight = Math.min(maxHeight, Math.max(minHeight, startPanelHeight + deltaY));
+        chatbotPanel.style.height = `${currentPanelHeight}px`;
+    };
 
-        const stopResizing = () => {
-            chatbotPanel.classList.remove('is-resizing');
-            chatbotResizeHandle.removeEventListener('pointermove', resizePanel);
-            chatbotResizeHandle.removeEventListener('pointerup', stopResizing);
-            chatbotResizeHandle.removeEventListener('pointercancel', stopResizing);
-        };
+    const handleTouchEnd = () => {
+        if (!chatbotPanel.classList.contains('is-touch-resizing')) return;
 
-        chatbotResizeHandle.addEventListener('pointermove', resizePanel);
-        chatbotResizeHandle.addEventListener('pointerup', stopResizing);
-        chatbotResizeHandle.addEventListener('pointercancel', stopResizing);
-    });
+        const { minHeight, defaultHeight, maxHeight } = getHeightBounds();
+        const snapPoints = [minHeight, defaultHeight, maxHeight];
+        const nearestSnapPoint = snapPoints.reduce((nearest, point) => (
+            Math.abs(point - currentPanelHeight) < Math.abs(nearest - currentPanelHeight) ? point : nearest
+        ));
+        const targetHeight = Math.abs(nearestSnapPoint - currentPanelHeight) <= 44
+            ? nearestSnapPoint
+            : currentPanelHeight;
+
+        chatbotPanel.classList.remove('is-touch-resizing');
+        chatbotDragHandle.classList.remove('is-dragging');
+        window.requestAnimationFrame(() => {
+            chatbotPanel.style.height = `${targetHeight}px`;
+        });
+    };
+
+    chatbotDragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
+    chatbotDragHandle.addEventListener('touchmove', handleTouchMove, { passive: false });
+    chatbotDragHandle.addEventListener('touchend', handleTouchEnd);
+    chatbotDragHandle.addEventListener('touchcancel', handleTouchEnd);
 }
 
 function appendChatMessage(message, author = 'bot') {
