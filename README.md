@@ -3,7 +3,7 @@
 This repository contains the source code for my personal portfolio website. It showcases my work as an EPFL Robotics Engineer, focusing on autonomous systems, hardware-software integration, and neuro-robotics.
 
 ## 🚀 Live Demo
-You can view the live site here: [https://samrahnemayan.vercel.app/](https://samrahnemayan.vercel.app/)
+You can view the live site here: [https://www.samportfolio.ch/](https://www.samportfolio.ch/)
 
 ## 🛠️ Technical Stack
 The website is built using a minimalist and performant approach, focusing on clean code and responsive design without heavy frameworks:
