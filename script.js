@@ -39,6 +39,14 @@ let activeModalProjectCard = null;
 let activeDetailProjectCard = null;
 let projectRouteOpenTimer = null;
 const CHATBOT_DISMISSED_KEY = 'portfolioChatbotDismissed';
+const isLocalStaticServer = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+function getPagePath(pageName) {
+    if (pageName === 'home' || pageName === 'index') {
+        return isLocalStaticServer ? 'index.html' : '/';
+    }
+    return isLocalStaticServer ? `${pageName}.html` : `/${pageName}`;
+}
 
 const PROJECT_SLUGS = Object.freeze({
     autonomyo: { en: 'soles', fr: 'semelles' },
@@ -173,7 +181,9 @@ const translations = {
             },
             search: {
                 label: 'Search projects',
-                placeholder: 'Search projects, tools, or methods'
+                placeholder: 'Search projects, tools, or methods',
+                clear: 'Clear',
+                empty: 'No projects found. Try a different term.'
             },
             descriptions: {
                 thesis: 'Developed a multi-modal experimental framework to quantify neuromuscular adaptation under upper-limb exoskeleton assistance and reveal clinically actionable coordination patterns.',
@@ -414,7 +424,9 @@ const translations = {
             },
             search: {
                 label: 'Rechercher des projets',
-                placeholder: 'Rechercher par projet, outil ou méthode'
+                placeholder: 'Rechercher par projet, outil ou méthode',
+                clear: 'Effacer',
+                empty: 'Aucun projet trouvé. Essayez un autre terme.'
             },
             descriptions: {
                 thesis: 'DÃ©veloppement d\'un cadre expÃ©rimental multimodal pour quantifier l\'adaptation neuromusculaire sous l\'assistance d\'un exosquelette de membre supÃ©rieur, rÃ©vÃ©lant des schÃ©mas de coordination exploitables en clinique.',
@@ -735,7 +747,7 @@ function applyProjectCardTranslations(language) {
         if (badgeEl) badgeEl.textContent = translation.badge || original.badge;
         if (actionEl) actionEl.textContent = actionTranslation || original.action;
         const localizedSlug = getProjectSlug(projectId, language);
-        if (localizedSlug && card.matches('a')) card.href = `/projects/${localizedSlug}`;
+        if (localizedSlug && card.matches('a')) card.href = getProjectDetailPath(projectId, language);
 
         tagEls.forEach((tagEl, index) => {
             tagEl.textContent = Array.isArray(translation.tags) && translation.tags[index]
@@ -790,6 +802,11 @@ function applyLanguage(language) {
         }
     });
 
+    if (projectSearchClear) {
+        const clearLabel = getTranslationValue(language, 'projects.search.clear');
+        if (clearLabel) projectSearchClear.setAttribute('aria-label', clearLabel);
+    }
+
     applyProjectCardTranslations(language);
 
     langButtons.forEach((button) => {
@@ -806,6 +823,13 @@ function applyLanguage(language) {
 
     updateRecommendationsDisclaimer(language);
     renderDynamicRecommendations();
+
+    if (projectSearchInput && (projectSearchInput.value.trim() || activeProjectIdFilter)) {
+        applyProjectSearch(
+            projectSearchInput.value,
+            activeProjectIdFilter ? Array.from(activeProjectIdFilter) : null
+        );
+    }
 
     if (activeModalProjectCard && projectModal && projectModal.classList.contains('active')) {
         openModal(activeModalProjectCard, { historyMode: 'replace' });
@@ -1668,7 +1692,7 @@ if (chatbotForm) chatbotForm.addEventListener('submit', sendMessage);
 // SKILL-TO-PROJECT FILTERING
 // =============================================
 
-let activeSkillFilter = '';
+let activeProjectIdFilter = null;
 
 function getMatchedProjectIds(skillTag) {
     return (skillTag.dataset.projectMatch || '')
@@ -1677,40 +1701,88 @@ function getMatchedProjectIds(skillTag) {
         .filter(Boolean);
 }
 
-function applyProjectSearch(query) {
+function clearProjectFilterUrl() {
+    if (!window.location.pathname.startsWith('/projects')) return;
+    window.history.replaceState(null, '', getPagePath('projects'));
+}
+
+function applyProjectSearch(query, projectIds = null) {
     if (projectCards.length === 0) return;
 
     const normalizedQuery = query.trim().toLowerCase();
+    const exactProjectIds = Array.isArray(projectIds) && projectIds.length > 0
+        ? new Set(projectIds)
+        : null;
+    const hasActiveFilter = Boolean(normalizedQuery) || Boolean(exactProjectIds);
     let visibleCount = 0;
+
+    activeProjectIdFilter = exactProjectIds;
 
     projectCards.forEach((card) => {
         const category = card.closest('.project-category-section');
         const categoryText = category ? category.querySelector('.project-category-heading')?.textContent || '' : '';
         const dataText = Array.from(card.attributes).map(attribute => attribute.value).join(' ');
         const searchableText = `${card.textContent} ${categoryText} ${dataText}`.toLowerCase();
-        const isMatch = !normalizedQuery || searchableText.includes(normalizedQuery);
+        const isMatch = exactProjectIds
+            ? exactProjectIds.has(card.dataset.projectId)
+            : !normalizedQuery || searchableText.includes(normalizedQuery);
 
         card.classList.toggle('search-hidden', !isMatch);
+        card.classList.remove('active-filter', 'dimmed');
         if (isMatch) visibleCount += 1;
     });
 
     document.querySelectorAll('.project-category-section').forEach((section) => {
         const hasVisibleProject = Array.from(section.querySelectorAll('.project-card'))
             .some(card => !card.classList.contains('search-hidden'));
-        section.classList.toggle('search-empty', Boolean(normalizedQuery) && !hasVisibleProject);
+        section.classList.toggle('search-empty', hasActiveFilter && !hasVisibleProject);
     });
 
-    if (projectSearchClear) projectSearchClear.hidden = !normalizedQuery;
+    if (projectSearchClear) projectSearchClear.hidden = !hasActiveFilter;
     if (projectSearchEmpty) projectSearchEmpty.hidden = visibleCount !== 0;
     if (projectSearchStatus) {
-        projectSearchStatus.textContent = normalizedQuery
-            ? `${visibleCount} project${visibleCount === 1 ? '' : 's'} found.`
-            : '';
+        if (!hasActiveFilter) {
+            projectSearchStatus.textContent = '';
+        } else if (currentLanguage === 'fr') {
+            projectSearchStatus.textContent = `${visibleCount} projet${visibleCount === 1 ? '' : 's'} trouvé${visibleCount === 1 ? '' : 's'}.`;
+        } else {
+            projectSearchStatus.textContent = `${visibleCount} project${visibleCount === 1 ? '' : 's'} found.`;
+        }
     }
+}
+
+function scrollToProjectSearch() {
+    const searchContainer = document.querySelector('.project-search');
+    if (!searchContainer) return;
+
+    searchContainer.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+}
+
+function initializeProjectSearchFromUrl() {
+    if (!projectSearchInput || projectCards.length === 0) return false;
+
+    const params = new URLSearchParams(window.location.search);
+    const skillLabel = params.get('skill')?.trim() || '';
+    const projectIds = (params.get('projects') || '')
+        .split(',')
+        .map(projectId => projectId.trim())
+        .filter(Boolean);
+
+    if (!skillLabel && projectIds.length === 0) return false;
+
+    projectSearchInput.value = skillLabel;
+    applyProjectSearch(skillLabel, projectIds.length > 0 ? projectIds : null);
+    window.setTimeout(scrollToProjectSearch, 120);
+    return true;
 }
 
 if (projectSearchInput) {
     projectSearchInput.addEventListener('input', () => {
+        activeProjectIdFilter = null;
+        clearProjectFilterUrl();
         applyProjectSearch(projectSearchInput.value);
     });
 }
@@ -1719,85 +1791,23 @@ if (projectSearchClear) {
     projectSearchClear.addEventListener('click', () => {
         if (!projectSearchInput) return;
         projectSearchInput.value = '';
+        activeProjectIdFilter = null;
+        clearProjectFilterUrl();
         applyProjectSearch('');
         projectSearchInput.focus();
     });
 }
 
-function clearProjectSkillFilter() {
-    activeSkillFilter = '';
-    skillTags.forEach(skillTag => {
-        skillTag.classList.remove('active-skill-filter');
-        skillTag.setAttribute('aria-pressed', 'false');
-    });
-    projectCards.forEach(card => {
-        card.classList.remove('active-filter', 'dimmed');
-    });
-}
-
-function scrollToSkillsSection() {
-    const skillsSection = document.getElementById('skills');
-    if (!skillsSection) return;
-
-    skillsSection.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-    });
-}
-
-function scrollToFirstActiveProject() {
-    const firstActiveProject = document.querySelector('.project-card.active-filter');
-    if (!firstActiveProject) return;
-
-    firstActiveProject.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-    });
-}
-
-function applyProjectSkillFilter(selectedSkillTag) {
-    const skillKey = selectedSkillTag.textContent.trim();
-    const matchedProjectIds = getMatchedProjectIds(selectedSkillTag);
-
-    if (activeSkillFilter === skillKey) {
-        clearProjectSkillFilter();
-        return 'cleared';
-    }
-
-    activeSkillFilter = skillKey;
-
-    skillTags.forEach(skillTag => {
-        const isActive = skillTag === selectedSkillTag;
-        skillTag.classList.toggle('active-skill-filter', isActive);
-        skillTag.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    });
-
-    projectCards.forEach(card => {
-        const isMatch = matchedProjectIds.includes(card.dataset.projectId);
-        card.classList.toggle('active-filter', isMatch);
-        card.classList.toggle('dimmed', !isMatch);
-    });
-
-    return 'applied';
-}
-
 function handleSkillFilterActivation(skillTag) {
-    if (projectCards.length === 0) {
-        const matchedProjectIds = getMatchedProjectIds(skillTag);
-        if (matchedProjectIds.length > 0) {
-            window.location.href = `/projects?projects=${encodeURIComponent(matchedProjectIds.join(','))}`;
-        }
-        return;
-    }
+    const skillLabel = skillTag.textContent.trim();
+    const matchedProjectIds = getMatchedProjectIds(skillTag);
+    if (!skillLabel || matchedProjectIds.length === 0) return;
 
-    const filterState = applyProjectSkillFilter(skillTag);
-
-    if (filterState === 'cleared') {
-        scrollToSkillsSection();
-        return;
-    }
-
-    scrollToFirstActiveProject();
+    const params = new URLSearchParams({
+        skill: skillLabel,
+        projects: matchedProjectIds.join(',')
+    });
+    window.location.href = `${getPagePath('projects')}?${params.toString()}`;
 }
 
 skillTags.forEach(skillTag => {
@@ -1814,6 +1824,24 @@ skillTags.forEach(skillTag => {
             e.preventDefault();
             handleSkillFilterActivation(skillTag);
         }
+    });
+});
+
+document.querySelectorAll('.projects-sub-nav a').forEach((link) => {
+    link.addEventListener('click', (event) => {
+        const href = link.getAttribute('href') || '';
+        if (!href.startsWith('#')) return;
+
+        const targetId = href.slice(1);
+        const targetSection = document.getElementById(targetId);
+        if (!targetSection) return;
+
+        event.preventDefault();
+        targetSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+        window.history.replaceState(null, '', `${window.location.pathname}#${targetId}`);
     });
 });
 
@@ -1927,6 +1955,39 @@ function getProjectSlug(projectId, language = currentLanguage) {
     return slugs[language] || slugs.en || '';
 }
 
+function getProjectDetailPath(projectId, language = currentLanguage) {
+    const slug = getProjectSlug(projectId, language);
+    if (!slug) return getPagePath('projects');
+
+    return isLocalStaticServer
+        ? `${getPagePath('projects')}#${slug}`
+        : `${getPagePath('projects')}/${slug}`;
+}
+
+function adaptInternalLinksForEnvironment() {
+    if (!isLocalStaticServer) return;
+
+    const pageLinks = new Map([
+        ['/', getPagePath('home')],
+        ['/projects', getPagePath('projects')],
+        ['/contact', getPagePath('contact')]
+    ]);
+
+    document.querySelectorAll('a[href]').forEach((link) => {
+        const href = link.getAttribute('href') || '';
+
+        if (pageLinks.has(href)) {
+            link.setAttribute('href', pageLinks.get(href));
+            return;
+        }
+
+        if (href.startsWith('/projects/')) {
+            const slug = href.slice('/projects/'.length).split(/[?#]/)[0];
+            if (slug) link.setAttribute('href', `${getPagePath('projects')}#${slug}`);
+        }
+    });
+}
+
 function resolveProjectSlug(rawSlug) {
     let slug = '';
 
@@ -1966,17 +2027,20 @@ function getProjectRouteFromLocation() {
     const projectsIndex = pathSegments.findIndex((segment) => segment === 'projects' || segment === 'projects.html');
     const pathSlug = projectsIndex >= 0 ? pathSegments[projectsIndex + 1] || '' : '';
     const hashSlug = window.location.hash.replace(/^#/, '');
+    const querySlug = new URLSearchParams(window.location.search).get('project') || '';
 
-    return resolveProjectSlug(pathSlug) || resolveProjectSlug(hashSlug);
+    return resolveProjectSlug(pathSlug) || resolveProjectSlug(hashSlug) || resolveProjectSlug(querySlug);
 }
 
 function updateProjectUrl(projectId, historyMode = 'push') {
     const slug = getProjectSlug(projectId);
     if (!slug) return;
 
-    const targetPath = `/projects/${slug}`;
-    const currentPath = `${window.location.pathname}${window.location.hash}`;
-    if (currentPath === targetPath) return;
+    const targetPath = getProjectDetailPath(projectId);
+    const targetUrl = new URL(targetPath, document.baseURI);
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const targetLocation = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+    if (currentPath === targetLocation) return;
 
     const method = historyMode === 'replace' ? 'replaceState' : 'pushState';
     window.history[method](null, '', targetPath);
@@ -2156,7 +2220,7 @@ function renderProjectDetail(card) {
     const heroClass = project.heroImage ? 'project-detail-hero' : 'project-detail-hero project-detail-hero--text-only';
 
     projectDetailContent.innerHTML = `
-        <a class="project-detail-back" href="/projects">&larr; ${escapeHtml(label('back', 'All Projects'))}</a>
+        <a class="project-detail-back" href="${escapeHtml(getPagePath('projects'))}">&larr; ${escapeHtml(label('back', 'All Projects'))}</a>
 
         <article class="project-detail-article">
             <header class="${heroClass}">
@@ -2237,9 +2301,9 @@ function renderProjectDetail(card) {
             </div>
 
             <nav class="project-detail-pagination" aria-label="Project navigation">
-                ${previousCard ? `<a href="/projects/${escapeHtml(getProjectSlug(previousCard.dataset.projectId))}">&larr; ${escapeHtml(label('previous', 'Previous Project'))}</a>` : '<span></span>'}
-                <a href="/projects">${escapeHtml(label('all', 'All Projects'))}</a>
-                ${nextCard ? `<a href="/projects/${escapeHtml(getProjectSlug(nextCard.dataset.projectId))}">${escapeHtml(label('next', 'Next Project'))} &rarr;</a>` : '<span></span>'}
+                ${previousCard ? `<a href="${escapeHtml(getProjectDetailPath(previousCard.dataset.projectId))}">&larr; ${escapeHtml(label('previous', 'Previous Project'))}</a>` : '<span></span>'}
+                <a href="${escapeHtml(getPagePath('projects'))}">${escapeHtml(label('all', 'All Projects'))}</a>
+                ${nextCard ? `<a href="${escapeHtml(getProjectDetailPath(nextCard.dataset.projectId))}">${escapeHtml(label('next', 'Next Project'))} &rarr;</a>` : '<span></span>'}
             </nav>
         </article>`;
 
@@ -2671,7 +2735,7 @@ function closeModal(options = {}) {
 
     if (syncUrl && window.location.pathname.startsWith('/projects')) {
         const method = historyMode === 'replace' ? 'replaceState' : 'pushState';
-        window.history[method](null, '', '/projects');
+        window.history[method](null, '', getPagePath('projects'));
     }
 }
 
@@ -2704,6 +2768,10 @@ if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
 if (modalClose) modalClose.addEventListener('click', closeModal);
 
 window.addEventListener('popstate', () => {
+    syncProjectViewWithLocation();
+});
+
+window.addEventListener('hashchange', () => {
     syncProjectViewWithLocation();
 });
 
@@ -2777,6 +2845,8 @@ window.addEventListener('scroll', updateActiveLink);
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    adaptInternalLinksForEnvironment();
+
     try {
         const savedLanguage = localStorage.getItem('portfolioLanguage');
         if (savedLanguage && translations[savedLanguage]) {
@@ -2794,16 +2864,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setTimeout(() => updateChatbotState(true), 700);
     }
 
-    const projectQuery = new URLSearchParams(window.location.search).get('projects');
-    if (projectQuery && projectCards.length > 0) {
-        const projectIds = projectQuery.split(',').map(id => id.trim()).filter(Boolean);
-        projectCards.forEach(card => {
-            const isMatch = projectIds.includes(card.dataset.projectId);
-            card.classList.toggle('active-filter', isMatch);
-            card.classList.toggle('dimmed', !isMatch);
-        });
-        setTimeout(scrollToFirstActiveProject, 120);
-    }
+    initializeProjectSearchFromUrl();
 
     const projectRoute = getProjectRouteFromLocation();
     const openedDeepLink = projectRoute
